@@ -1,0 +1,4 @@
+rucio_rse: "RSE1"
+scope: "testscope"
+rse_root: "/rse/root"
+dtn_url: "root://rse1:1094//rucio"

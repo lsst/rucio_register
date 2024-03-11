@@ -1,0 +1,4 @@
+rucio_rse: "XRD1"
+scope: "test"
+rse_root: "/rucio/disks/xrd1/rucio"
+dtn_url: "root://xrd1:1094//rucio"

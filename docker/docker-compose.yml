@@ -1,0 +1,28 @@
+version: "3.7"
+
+services:
+  test-register:
+    container_name: test-register
+    image: test-register
+    volumes:
+      - /tmp:/tmp/
+      - ../../disks:/rucio/disks
+      - ../../dm_rucio_register:/home/lsst/dm_rucio_register
+      - ../../ctrl_ingestd:/home/lsst/ctrl_ingestd
+      - ../../embargo-butler:/home/lsst/embargo-butler
+      - ../../tmp_new:/home/lsst/tmp_new
+      - ../../test_data:/home/lsst/test_data
+      - ../../ctrl_rucio_ingest/etc/rucio.cfg:/opt/rucio/etc/rucio.cfg:z
+      - ../../rucio/etc/certs/rucio_ca.pem:/etc/grid-security/certificates/5fca1cb1.0:z
+      - ../../rucio/etc/certs/hostcert_rucio.pem:/etc/grid-security/hostcert.pem:z
+      - ../../rucio/etc/certs/hostcert_rucio.key.pem:/etc/grid-security/hostkey.pem:z
+      - ../../rucio/etc/certs/rucio_ca.pem:/opt/rucio/etc/rucio_ca.pem:z
+      - ../../rucio/etc/certs/ruciouser.pem:/opt/rucio/etc/usercert.pem:z
+      - ../../rucio/etc/certs/ruciouser.key.pem:/opt/rucio/etc/userkey.pem:z
+      - ../../rucio/etc/certs/ruciouser.certkey.pem:/opt/rucio/etc/usercertkey.pem:z
+      - ../../rucio/etc/certs/ssh/ruciouser_sshkey.pub:/root/.ssh/ruciouser_sshkey.pub:z
+      - ../../rucio/etc/certs/ssh/ruciouser_sshkey:/root/.ssh/ruciouser_sshkey:z
+    build:
+      context: ./test-register
+      args:
+        - LSST_STACK_VERSION

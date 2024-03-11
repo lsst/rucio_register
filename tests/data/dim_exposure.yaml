@@ -1,0 +1,32 @@
+description: Butler Data Repository Export
+version: 1.0.2
+universe_version: 5
+universe_namespace: daf_butler
+data:
+- type: dimension
+  element: exposure
+  records:
+  - instrument: HSC
+    id: 318
+    physical_filter: HSC-Y
+    obs_id: HSCA00031800
+    exposure_time: 240.0
+    dark_time: 240.0
+    observation_type: science
+    observation_reason: science
+    day_obs: 20140325
+    seq_num: 318
+    seq_start: 318
+    seq_end: 318
+    group_name: '318'
+    group_id: 318
+    target_name: SSP-UDeep-COSMOS
+    science_program: o14406
+    tracking_ra: 150.1688208333333
+    tracking_dec: 2.1599777777777778
+    sky_angle: 270.0
+    azimuth: null
+    zenith_angle: 26.66147756
+    has_simulated: false
+    datetime_begin: !butler_time/tai/iso '2014-03-25 09:34:19.634000000'
+    datetime_end: !butler_time/tai/iso '2014-03-25 09:38:21.595000000'
