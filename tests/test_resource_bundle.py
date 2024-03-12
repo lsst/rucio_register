@@ -24,17 +24,22 @@ import unittest
 
 import lsst.utils.tests
 from lsst.dm.rucio.register.resource_bundle import ResourceBundle
+from lsst.dm.rucio.register.rubin_meta import RubinMeta
+from lsst.dm.rucio.register.rucio_did import RucioDID
 
 
 class ResourceBundleTestCase(unittest.TestCase):
 
     def testResourceBundle(self):
-        rb = ResourceBundle("12", {"1": 1, "2": 2, "3": 3})
+        meta = RubinMeta(rubin_butler=1, rubin_sidecar="mysidecar")
+        did = RucioDID(
+            pfn="string1", bytes=451, adler32="32", md5="0x5", name="myname", scope="mouthwash", meta=meta
+        )
+        rb = ResourceBundle(dataset_id="12", did=did)
 
         self.assertEqual(rb.dataset_id, "12")
-        self.assertEqual(rb.did["1"], 1)
-        self.assertEqual(rb.did["2"], 2)
-        self.assertEqual(rb.did["3"], 3)
+        rdid = rb.get_did()
+        self.assertEqual(rdid["pfn"], "string1")
 
 
 class MemoryTester(lsst.utils.tests.MemoryTestCase):

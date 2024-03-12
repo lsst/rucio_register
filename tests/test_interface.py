@@ -92,7 +92,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
             rb = ri._make_bundle("mydataset", ref)
             self.assertEqual(rb.dataset_id, "mydataset")
 
-            did = rb.did
+            did = rb.did.model_dump()
             self.assertEqual(did["pfn"], f"{dtn_url}{self.data_file}")
             self.assertEqual(did["bytes"], 1365120)
             self.assertEqual(did["adler32"], "480be4de")

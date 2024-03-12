@@ -20,14 +20,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pydantic
-from lsst.dm.rucio.register.rucio_did import RucioDID
+from lsst.dm.rucio.register.rubin_meta import RubinMeta
 
-__all__ = ["ResourceBundle"]
+__all__ = ["RucioDID"]
 
 
-class ResourceBundle(pydantic.BaseModel):
-    dataset_id: str
-    did: RucioDID
-
-    def get_did(self) -> dict:
-        return self.did.model_dump()
+class RucioDID(pydantic.BaseModel):
+    pfn: str
+    bytes: int
+    adler32: str
+    md5: str
+    name: str
+    scope: str
+    meta: RubinMeta

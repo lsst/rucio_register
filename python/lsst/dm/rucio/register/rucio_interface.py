@@ -28,6 +28,8 @@ import zlib
 import lsst.daf.butler
 import rucio.common.exception
 from lsst.dm.rucio.register.resource_bundle import ResourceBundle
+from lsst.dm.rucio.register.rubin_meta import RubinMeta
+from lsst.dm.rucio.register.rucio_did import RucioDID
 from rucio.client.didclient import DIDClient
 from rucio.client.replicaclient import ReplicaClient
 
@@ -80,10 +82,10 @@ class RucioInterface:
             Butler DatasetRef
         """
         did = self._make_did(self.butler.getURI(dataset_ref), dataset_ref.to_json())
-        rb = ResourceBundle(dataset_id, did)
+        rb = ResourceBundle(dataset_id=dataset_id, did=did)
         return rb
 
-    def _make_did(self, resource_path, metadata: str) -> dict[str, str | int]:
+    def _make_did(self, resource_path, metadata: str) -> RucioDID:
         """Make a Rucio data identifier dictionary from a resource.
 
         Parameters
@@ -111,8 +113,8 @@ class RucioInterface:
         logging.debug(f"pfn = {pfn}")
         name = path.removeprefix("/" + self.scope + "/")
 
-        meta = {"rubin_butler": 1, "rubin_sidecar": metadata}
-        d = dict(
+        meta = RubinMeta(rubin_butler=1, rubin_sidecar=metadata)
+        d = RucioDID(
             pfn=pfn,
             bytes=size,
             adler32=adler32,
