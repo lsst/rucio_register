@@ -202,7 +202,7 @@ class RucioInterface:
 
         datasets = dict()
         for bundle in bundles:
-            dataset_id = bundle.get_dataset_id()
+            dataset_id = bundle.dataset_id
             datasets.setdefault(dataset_id, []).append(bundle)
 
         for dataset_id, bundles in datasets.items():
