@@ -32,15 +32,15 @@ class DatasetMapTestCase(unittest.TestCase):
     def testDatasetMap(self):
         test_dir = os.path.abspath(os.path.dirname(__file__))
         map_file = os.path.join(test_dir, "data", "map.yaml")
-        td = DatasetMap(map_file)
+        td = DatasetMap.from_yaml(map_file)
 
-        s = td.get_dataset_template("visitSummary")
+        s = td.map["visitSummary"]
         self.assertEqual(s, "{visit}/one/two")
 
-        s = td.get_dataset_template("isolated_star_cat")
+        s = td.map["isolated_star_cat"]
         self.assertEqual(s, "three/four/{tract}")
 
-        s = td.get_dataset_template("isolated_star_sources")
+        s = td.map["isolated_star_sources"]
         self.assertEqual(s, "five/six/{tract}")
 
 

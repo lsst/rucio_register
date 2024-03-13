@@ -1,6 +1,4 @@
-visitSummary:
-    dataset_template: "{visit}/one/two"
-isolated_star_cat:
-    dataset_template: "three/four/{tract}"
-isolated_star_sources:
-    dataset_template: "five/six/{tract}"
+map:
+    visitSummary: "{visit}/one/two"
+    isolated_star_cat: "three/four/{tract}"
+    isolated_star_sources: "five/six/{tract}"

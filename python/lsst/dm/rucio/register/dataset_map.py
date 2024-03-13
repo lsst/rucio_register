@@ -19,29 +19,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from pydantic import BaseModel
+from typing import Dict
 import yaml
 
-
-class DatasetMap:
+class DatasetMap(BaseModel):
     """Mapping of dataset type to dataset templates
-
-    Parameters
-    ----------
-    mapping_yaml: `str`
-        name of YAML file containing mapping
     """
+    map: Dict[str, str]
 
-    def __init__(self, mapping_yaml):
-        with open(mapping_yaml) as f:
-            self.config = yaml.safe_load(f)
-
-    def get_dataset_template(self, typename) -> str:
-        """Get the dataset_template associated with a dataset type
-
-        Parameters
-        ----------
-        typename: `str`
-            Butler typename
+    @classmethod
+    def from_yaml(cls, path: str):
+        """Create an object populated by a YAML file
         """
-        template = self.config[typename]["dataset_template"]
-        return template
+        with open(path) as f:
+            s = yaml.safe_load(f)
+        return cls(**s)
