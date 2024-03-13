@@ -102,7 +102,6 @@ class RucioInterface:
             Rucio data identifier including physical and logical names,
             byte length, adler32 and MD5 checksums, meta, and scope.
         """
-        logging.info(f"type(resource_path) = {type(resource_path)}")
         with resource_path.open("rb") as f:
             contents = f.read()
             size = len(contents)
@@ -134,9 +133,7 @@ class RucioInterface:
         bundles: `list[ResourceBundle]`
             A list of ResourceBundles
         """
-        logger.info(f"rse={self.rse}, bundles={bundles}")
         dids = [bundle.get_did() for bundle in bundles]
-        logger.info(f"{dids[0]=}")
         self.replica_client = ReplicaClient()
         self.replica_client.add_replicas(rse=self.rse, files=dids)
 
@@ -164,7 +161,6 @@ class RucioInterface:
                 )
                 return
             except rucio.common.exception.FileAlreadyExists:
-                logger.info(f"FileAlreadyExists 1, dataset_id = {dataset_id}")
                 # At least one already is in the dataset.
                 # This shouldn't happen, but if it does,
                 # we have to retry each individually.
@@ -177,7 +173,6 @@ class RucioInterface:
                             rse=self.rse,
                         )
                     except rucio.common.exception.FileAlreadyExists:
-                        logger.info("FileAlreadyExists 2")
                         pass
                 return
             except rucio.common.exception.DatabaseException:
@@ -224,7 +219,6 @@ class RucioInterface:
                     )
                 except rucio.common.exception.DataIdentifierAlreadyExists:
                     # If someone else created it in the meantime
-                    logger.info("DataIndentifierAlreadyExists")
                     pass
                 # And then retry adding DIDs
                 self._add_files_to_dataset(did_client, dataset_id, dids)
