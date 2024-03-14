@@ -26,14 +26,13 @@ from pydantic import BaseModel
 
 
 class DatasetMap(BaseModel):
-    """Mapping of dataset type to dataset templates
-    """
+    """Mapping of dataset type to dataset templates"""
+
     map: Dict[str, str]
 
     @classmethod
     def from_yaml(cls, path: str):
-        """Create an object populated by a YAML file
-        """
+        """Create an object populated by a YAML file"""
         with open(path) as f:
             s = yaml.safe_load(f)
         return cls(**s)
