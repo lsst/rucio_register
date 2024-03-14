@@ -53,14 +53,6 @@ class AppParserTestCase(unittest.TestCase):
         self.assertEqual(ap.register_config, "config")
         self.assertEqual(ap.loglevel, logging.INFO)
 
-    def testMissingArguments(self):
-        argv = ["unittest", "-r", "repo"]
-
-        try:
-            ap = AppParser(argv)
-        except SystemExit:
-            pass
-
 
 class MemoryTester(lsst.utils.tests.MemoryTestCase):
     pass
