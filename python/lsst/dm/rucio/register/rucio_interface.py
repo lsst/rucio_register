@@ -107,10 +107,10 @@ class RucioInterface:
             size = len(contents)
             md5 = hashlib.md5(contents).hexdigest()
             adler32 = f"{zlib.adler32(contents):08x}"
-        path = resource_path.path.removeprefix(self.rse_root)
+        path = resource_path.unquoted_path.removeprefix(self.rse_root)
         pfn = self.pfn_base + path
         logging.debug(f"pfn = {pfn}")
-        name = path.removeprefix("/" + self.scope + "/")
+        name = path.removeprefix("/")
 
         meta = RubinMeta(rubin_butler=1, rubin_sidecar=metadata)
         d = RucioDID(
