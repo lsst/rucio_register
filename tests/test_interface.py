@@ -97,7 +97,8 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
             self.assertEqual(did["bytes"], 1365120)
             self.assertEqual(did["adler32"], "480be4de")
             self.assertEqual(did["md5"], "a7ee5c19f5717bcf8d772de202864244")
-            self.assertEqual(did["name"], f"{self.data_file}")
+            name = self.data_file.removeprefix('/')
+            self.assertEqual(did["name"], name)
             self.assertEqual(did["scope"], "test")
 
             meta = did["meta"]
