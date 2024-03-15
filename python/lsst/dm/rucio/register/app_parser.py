@@ -120,7 +120,7 @@ class AppParser:
             help="number of replica requests to make at once",
             action="store",
             dest="chunks",
-            type=int, 
+            type=int,
             required=False,
             default=30,
         )
