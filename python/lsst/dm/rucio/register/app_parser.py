@@ -114,6 +114,16 @@ class AppParser:
             const=logging.DEBUG,
             default=None,
         )
+        parser.add_argument(
+            "-s",
+            "--chunk-size",
+            help="number of replica requests to make at once",
+            action="store",
+            dest="chunks",
+            type=int, 
+            required=False,
+            default=30,
+        )
 
         args = parser.parse_args(argv[1:])
 
@@ -130,3 +140,4 @@ class AppParser:
         self.rucio_dataset = args.rucio_dataset
         self.register_config = args.register_config
         self.loglevel = args.loglevel
+        self.chunks = args.chunks

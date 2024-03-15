@@ -20,6 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import itertools
 import logging
 import os
 import sys
@@ -33,6 +34,17 @@ logger = logging.getLogger(__name__)
 
 RUCIO_REGISTER_CONFIG = "RUCIO_REGISTER_CONFIG"
 _MSG = "environment variable not set, and no configuration was specified on the command line"
+
+
+def chunks(refs, chunk_size):
+    it = iter(refs)
+    while True:
+        chunk = itertools.islice(it, chunk_size)
+        try:
+            start = next(chunk)
+        except StopIteration:
+            return
+        yield itertools.chain((start,), chunk)
 
 
 def main():
@@ -70,9 +82,7 @@ def main():
     # query the butler for the datasets specified on the commmand line
     dataset_refs = butler.registry.queryDatasets(ap.dataset_type, collections=ap.collections)
 
-    # register dataset_refs with Rucio into the rucio dataset
-    cnt = ri.register_as_replicas(ap.rucio_dataset, dataset_refs)
-    if cnt == 0:
-        logger.debug("no datasets to register")
-        return 200
-    return cnt
+    # register dataset_refs with Rucio into the rucio dataset, in chunks
+    for refs in chunks(dataset_refs, ap.chunks):
+        cnt = ri.register_as_replicas(ap.rucio_dataset, refs)
+        logger.debug(f"{cnt} butler datasets registered")

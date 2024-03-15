@@ -25,4 +25,4 @@ import sys
 from lsst.dm.rucio.register.script import main
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
