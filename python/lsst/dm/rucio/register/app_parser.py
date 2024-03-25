@@ -90,6 +90,16 @@ class AppParser:
             type=str,
             required=False,
         )
+        parser.add_argument(
+            "-s",
+            "--chunk-size",
+            help="number of replica requests to make at once",
+            action="store",
+            dest="chunks",
+            type=int,
+            required=False,
+            default=30,
+        )
         # the following arguments are for logging;
         # defaults to WARNING
         # -v sets to INFO
@@ -113,16 +123,6 @@ class AppParser:
             dest="loglevel",
             const=logging.DEBUG,
             default=None,
-        )
-        parser.add_argument(
-            "-s",
-            "--chunk-size",
-            help="number of replica requests to make at once",
-            action="store",
-            dest="chunks",
-            type=int,
-            required=False,
-            default=30,
         )
 
         args = parser.parse_args(argv[1:])
