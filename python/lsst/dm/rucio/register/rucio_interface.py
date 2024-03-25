@@ -202,9 +202,7 @@ class RucioInterface:
 
         for dataset_id, bundles in datasets.items():
             try:
-                dids = []
-                for rb in bundles:
-                    dids.append(rb.get_did())
+                dids = [rb.get_did() for rb in bundles]
                 logger.info("Registering %s in dataset %s, RSE %s", dids, dataset_id, self.rse)
                 self._add_files_to_dataset(did_client, dataset_id, dids)
             except rucio.common.exception.DataIdentifierNotFound:
