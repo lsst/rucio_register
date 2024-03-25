@@ -1,0 +1,4 @@
+map:
+    visitSummary: "{visit}/one/two"
+    isolated_star_cat: "three/four/{tract}"
+    isolated_star_sources: "five/six/{tract}"
