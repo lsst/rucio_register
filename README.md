@@ -33,7 +33,7 @@ Rucio dataset specified by the "rucio-dataset" argument.
 ## config.yaml
 
 The config.yaml file includes information which specifies the Rucio RSE
-to use, the Rucio scope, the local of the rse_root and the URL prefix 
+to use, the Rucio scope, the local root of the RSE (as seen in the resource paths returned from the Butler), and the URL prefix 
 of the location where Rucio stores the files.
 
 
