@@ -54,12 +54,9 @@ def main():
     # default to using RUCIO_REGISTER_CONFIG env variable
     # if that's not set, try to use the command line
     # if neither are set, then raise an Exception
-    if RUCIO_REGISTER_CONFIG in os.environ:
-        config_file = os.environ[RUCIO_REGISTER_CONFIG]
-    elif ap.register_config is None:
-        raise Exception(f"{RUCIO_REGISTER_CONFIG} {_MSG}")
-    else:
-        config_file = ap.register_config
+    config_file = os.environ.get(RUCIO_REGISTER_CONFIG, ap.register_config)
+    if config_file is None:
+        raise RuntimeError(f"{RUCIO_REGISTER_CONFIG} {_MSG}")
 
     config = RucioRegisterConfig(config_file)
 

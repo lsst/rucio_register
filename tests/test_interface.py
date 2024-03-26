@@ -24,7 +24,7 @@ import json
 import os
 import shutil
 import tempfile
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import lsst.utils.tests
 from lsst.daf.butler import Butler, DatasetRef, FileDataset
@@ -32,6 +32,8 @@ from lsst.daf.butler.registry import DatasetTypeError, MissingCollectionError
 from lsst.dm.rucio.register.rucio_interface import RucioInterface
 from lsst.pipe.base import Instrument
 from lsst.resources import ResourcePath
+from rucio.client.didclient import DIDClient
+from rucio.client.replicaclient import ReplicaClient
 
 
 class InterfaceTestCase(lsst.utils.tests.TestCase):
@@ -62,7 +64,9 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         fds = self.create_file_dataset(self.data_file, self.json_file)
         self.ingest([fds])
 
-    def testInterfaceTestCase(self):
+    @patch.object(ReplicaClient, "__init__", return_value=None)
+    @patch.object(DIDClient, "__init__", return_value=None)
+    def testInterfaceTestCase(self, MockClass1, MockClass2):
         rucio_rse = "DRR1"
         scope = "test"
         rse_root = tempfile.mkdtemp()
