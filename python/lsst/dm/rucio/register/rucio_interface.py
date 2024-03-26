@@ -70,6 +70,8 @@ class RucioInterface:
         self.rse_root = rse_root
         self.dtn_url = dtn_url
         self.pfn_base = f"{dtn_url}"
+        self.replica_client = ReplicaClient()
+        self.did_client = DIDClient()
 
     def _make_bundle(self, dataset_id, dataset_ref) -> ResourceBundle:
         """Make a ResourceBundle
@@ -134,10 +136,9 @@ class RucioInterface:
             A list of ResourceBundles
         """
         dids = [bundle.get_did() for bundle in bundles]
-        self.replica_client = ReplicaClient()
         self.replica_client.add_replicas(rse=self.rse, files=dids)
 
-    def _add_files_to_dataset(self, did_client, dataset_id: str, dids: list[dict]) -> None:
+    def _add_files_to_dataset(self, dataset_id: str, dids: list[dict]) -> None:
         """Attach a list of files specified by Rucio DIDs to a Rucio dataset.
 
         Ignores already-attached files for idempotency.
@@ -153,7 +154,7 @@ class RucioInterface:
         max_retries = 2
         while True:
             try:
-                did_client.add_files_to_dataset(
+                self.did_client.add_files_to_dataset(
                     scope=self.scope,
                     name=dataset_id,
                     files=dids,
@@ -166,7 +167,7 @@ class RucioInterface:
                 # we have to retry each individually.
                 for did in dids:
                     try:
-                        did_client.add_files_to_dataset(
+                        self.did_client.add_files_to_dataset(
                             scope=self.scope,
                             name=dataset_id,
                             files=[did],
@@ -193,8 +194,6 @@ class RucioInterface:
         """
         logger.debug("register to dataset")
 
-        did_client = DIDClient()
-
         datasets = dict()
         for bundle in bundles:
             dataset_id = bundle.dataset_id
@@ -204,12 +203,12 @@ class RucioInterface:
             try:
                 dids = [rb.get_did() for rb in bundles]
                 logger.info("Registering %s in dataset %s, RSE %s", dids, dataset_id, self.rse)
-                self._add_files_to_dataset(did_client, dataset_id, dids)
+                self._add_files_to_dataset(dataset_id, dids)
             except rucio.common.exception.DataIdentifierNotFound:
                 # No such dataset, so create it
                 try:
                     logger.info("Creating Rucio dataset %s", dataset_id)
-                    did_client.add_dataset(
+                    self.did_client.add_dataset(
                         scope=self.scope,
                         name=dataset_id,
                         statuses={"monotonic": True},
@@ -219,7 +218,7 @@ class RucioInterface:
                     # If someone else created it in the meantime
                     pass
                 # And then retry adding DIDs
-                self._add_files_to_dataset(did_client, dataset_id, dids)
+                self._add_files_to_dataset(dataset_id, dids)
 
         logger.debug("Done with Rucio for %s", bundles)
 
