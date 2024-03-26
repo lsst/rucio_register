@@ -72,9 +72,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         rse_root = tempfile.mkdtemp()
         dtn_url = "root://xrd1:1094//rucio"
 
-        print(">>>> 0")
         ri = RucioInterface(self.butler, rucio_rse, scope, rse_root, dtn_url)
-        print(">>>> 1")
         ri._add_replicas = MagicMock(name="_add_replicas")
         ri.register_to_dataset = MagicMock(name="register_to_dataset")
 
