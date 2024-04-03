@@ -111,8 +111,10 @@ class RucioInterface:
             adler32 = f"{zlib.adler32(contents):08x}"
         path = resource_path.unquoted_path.removeprefix(self.rse_root)
         pfn = self.pfn_base + path
-        logging.debug(f"pfn = {pfn}")
-        name = path.removeprefix("/")
+        logging.debug(f"{pfn=}")
+        name = path.removeprefix("/"+self.scope+"/")
+        logging.debug(f"{name=}")
+        logging.debug(f"{path=}")
 
         meta = RubinMeta(rubin_butler=1, rubin_sidecar=metadata)
         d = RucioDID(
