@@ -112,7 +112,7 @@ class RucioInterface:
         path = resource_path.unquoted_path.removeprefix(self.rse_root)
         pfn = self.pfn_base + path
         logging.debug(f"{pfn=}")
-        name = path.removeprefix("/"+self.scope+"/")
+        name = path.removeprefix("/" + self.scope + "/")
         logging.debug(f"{name=}")
         logging.debug(f"{path=}")
 
