@@ -23,23 +23,26 @@ variable **RUCIO_REGISTER_CONFIG**.
 rucio-integration-register --repo /repo/main --collections HSC/runs/PDR2/PDR2-VVDS-FR/w_2024_02_DM-40654/step2a/group'*' --dataset-type visitSummary --rucio-dataset Dataset/HSC/runs/PDR2/PDR2-VVDS-FR/w_2024_02_DM-40654/step2a -C config.yaml
 ```
 
-This command looks for files registered in the butler repo "/repo/main" using
-the "dataset-type" and "collections" arguments to query the butler. The
-resulting datasets' files are registered with Rucio, as specified in the 
-"config.yaml" file. Additionally, those files are registered with the 
+This command looks for files registered in the butler repo "/repo/main" 
+using the "dataset-type" and "collections" arguments to query the butler. Note
+that the repo name's suffix is the Rucio "scope". In this example, that scope
+is "main".
+
+The resulting datasets' files are registered with Rucio, as specified in 
+the "config.yaml" file.  Additionally, those files are registered with the 
 Rucio dataset specified by the "rucio-dataset" argument.
 
 
 ## config.yaml
 
 The config.yaml file includes information which specifies the Rucio RSE
-to use, the Rucio scope, the local root of the RSE (as seen in the resource paths returned from the Butler), and the URL prefix 
+to use, the Rucio scope, the local root of the RSE, and the URL prefix 
 of the location where Rucio stores the files.
 
 
 ```
 rucio_rse: "XRD1"
-scope: "test"
+scope: "main"
 rse_root: "/rucio/disks/xrd1/rucio"
 dtn_url: "root://xrd1:1094//rucio"
 ```
