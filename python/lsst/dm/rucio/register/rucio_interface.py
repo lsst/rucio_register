@@ -146,7 +146,7 @@ class RucioInterface:
             except Exception:
                 retries += 1
                 if retries < max_retries:
-                    time.sleep(random.uinform(1,5))
+                    time.sleep(random.uniform(1,5))
                     self.replica_client = ReplicaClient() # XXX not sure we need to do this.
                 else:
                     raise Exception("Tried {max_retries} and couldn't add_replicas")
