@@ -86,7 +86,6 @@ class RucioInterface:
         did = self._make_did(self.butler.getURI(dataset_ref), dataset_ref.to_json())
         rb = ResourceBundle(dataset_id=dataset_id, did=did)
         return rb
-
     def _make_did(self, resource_path, metadata: str) -> RucioDID:
         """Make a Rucio data identifier dictionary from a resource.
 
@@ -138,7 +137,20 @@ class RucioInterface:
             A list of ResourceBundles
         """
         dids = [bundle.get_did() for bundle in bundles]
-        self.replica_client.add_replicas(rse=self.rse, files=dids)
+        retries = 0
+        max_retries = 5
+        while True:
+            try:
+                self.replica_client.add_replicas(rse=self.rse, files=dids)
+                break
+            except Exception:
+                retries += 1
+                if retries < max_retries:
+                    time.sleep(random.uinform(1,5))
+                    self.replica_client = ReplicaClient() # XXX not sure we need to do this.
+                else:
+                    raise Exception("Tried {max_retries} and couldn't add_replicas")
+        
 
     def _add_files_to_dataset(self, dataset_id: str, dids: list[dict]) -> None:
         """Attach a list of files specified by Rucio DIDs to a Rucio dataset.
