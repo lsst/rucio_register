@@ -146,10 +146,12 @@ class RucioInterface:
             except Exception:
                 retries += 1
                 if retries < max_retries:
-                    time.sleep(random.uniform(1,5))
+                    seconds = random.randint(10,20)
+                    logger.debug(f"failed to add_replicas; sleeping {seconds} seconds")
+                    time.sleep(seconds)
                     self.replica_client = ReplicaClient() # XXX not sure we need to do this.
                 else:
-                    raise Exception("Tried {max_retries} and couldn't add_replicas")
+                    raise Exception(f"Tried {max_retries} times and couldn't add_replicas")
         
     def _add_file_to_dataset_with_retries(self, dataset_id, did):
         retries = 0
@@ -166,14 +168,16 @@ class RucioInterface:
             except rucio.common.exception.FileAlreadyExists:
                 logger.debug(f"file {did} already registered in dataset {dataset_id}")
                 return # we can return, because it's already in the dataset
-            except Exception:
+            except rucio.common.exception.RucioException:
                 retries += 1
                 if retries < max_retries:
-                    time.sleep(random.uniform(1,5))
+                    seconds = random.randint(10,20)
+                    logger.debug(f"failed to register single did to dataset {dataset_id}; sleeping {seconds} seconds")
+                    time.sleep(seconds)
                     self.did_client = DIDClient() # XXX not sure we need to do this.
                 else:
                     # we tried max_retries times, and failed, so we'll bail out
-                    raise Exception(f"Tried {max_retries} and couldn't add {file} to dataset {dataset_id}")
+                    raise Exception(f"Tried {max_retries} times and couldn't add {did['pfn']} to dataset {dataset_id}")
         
 
     def _add_files_to_dataset(self, dataset_id: str, dids: list[dict]) -> None:
@@ -189,7 +193,7 @@ class RucioInterface:
             List of Rucio data identifiers.
         """
         retries = 0
-        max_retries = 2
+        max_retries = 5
         while True:
             try:
                 self.did_client.add_files_to_dataset(
@@ -204,21 +208,20 @@ class RucioInterface:
                 # This shouldn't happen, but if it does,
                 # we have to retry each individually.
                 for did in dids:
-                    try:
-                        self._add_file_to_dataset_with_retries(
-                            dataset_id=dataset_id,
-                            did=did,
-                        )
-                    except rucio.common.exception.FileAlreadyExists:
-                        pass
+                    self._add_file_to_dataset_with_retries(
+                        dataset_id=dataset_id,
+                        did=did,
+                    )
                 return
-            except rucio.common.exception.DatabaseException:
+            except rucio.common.exception.RucioException:
                 retries += 1
                 if retries < max_retries:
-                    time.sleep(random.uniform(0.5, 2))
+                    seconds = random.randint(10,20)
+                    logger.debug(f"failed to register multiple dids to dataset {dataset_id}; sleeping {seconds} seconds")
+                    time.sleep(seconds)
                     continue
                 else:
-                    raise
+                    raise Exception(f"Tried {max_retries} times and couldn't add files to dataset {dataset_id}")
 
     def register_to_dataset(self, bundles) -> None:
         """Register a list of files in Rucio.
