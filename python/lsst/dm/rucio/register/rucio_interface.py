@@ -151,6 +151,30 @@ class RucioInterface:
                 else:
                     raise Exception("Tried {max_retries} and couldn't add_replicas")
         
+    def _add_file_to_dataset_with_retries(self, dataset_id, did):
+        retries = 0
+        max_retries = 5
+        while True:
+            try:
+                self.did_client.add_files_to_dataset(
+                    scope=self.scope,
+                    name=dataset_id,
+                    files=[did],
+                    rse=self.rse
+                )
+                break
+            except rucio.common.exception.FileAlreadyExists:
+                logger.debug(f"file {did} already registered in dataset {dataset_id}")
+                return # we can return, because it's already in the dataset
+            except Exception:
+                retries += 1
+                if retries < max_retries:
+                    time.sleep(random.uniform(1,5))
+                    self.did_client = DIDClient() # XXX not sure we need to do this.
+                else:
+                    # we tried max_retries times, and failed, so we'll bail out
+                    raise Exception(f"Tried {max_retries} and couldn't add {file} to dataset {dataset_id}")
+        
 
     def _add_files_to_dataset(self, dataset_id: str, dids: list[dict]) -> None:
         """Attach a list of files specified by Rucio DIDs to a Rucio dataset.
@@ -181,11 +205,9 @@ class RucioInterface:
                 # we have to retry each individually.
                 for did in dids:
                     try:
-                        self.did_client.add_files_to_dataset(
-                            scope=self.scope,
-                            name=dataset_id,
-                            files=[did],
-                            rse=self.rse,
+                        self._add_file_to_dataset_with_retries(
+                            dataset_id=dataset_id,
+                            did=did,
                         )
                     except rucio.common.exception.FileAlreadyExists:
                         pass
