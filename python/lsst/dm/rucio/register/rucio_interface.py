@@ -213,6 +213,8 @@ class RucioInterface:
                         did=did,
                     )
                 return
+            except rucio.common.exception.DataIdentifierNotFound:
+                raise rucio.common.exception.DataIdentifierNotFound()
             except rucio.common.exception.RucioException:
                 retries += 1
                 if retries < max_retries:
