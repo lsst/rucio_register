@@ -86,6 +86,7 @@ class RucioInterface:
         did = self._make_did(self.butler.getURI(dataset_ref), dataset_ref.to_json())
         rb = ResourceBundle(dataset_id=dataset_id, did=did)
         return rb
+
     def _make_did(self, resource_path, metadata: str) -> RucioDID:
         """Make a Rucio data identifier dictionary from a resource.
 
@@ -146,13 +147,13 @@ class RucioInterface:
             except rucio.common.exception.RucioException:
                 retries += 1
                 if retries < max_retries:
-                    seconds = random.randint(10,20)
+                    seconds = random.randint(10, 20)
                     logger.debug(f"failed to add_replicas; sleeping {seconds} seconds")
                     time.sleep(seconds)
-                    self.replica_client = ReplicaClient() # XXX not sure we need to do this.
+                    self.replica_client = ReplicaClient()  # XXX not sure we need to do this.
                 else:
                     raise Exception(f"Tried {max_retries} times and couldn't add_replicas")
-        
+
     def _add_file_to_dataset_with_retries(self, dataset_id, did):
         retries = 0
         max_retries = 5
@@ -167,18 +168,17 @@ class RucioInterface:
                 break
             except rucio.common.exception.FileAlreadyExists:
                 logger.debug(f"file {did} already registered in dataset {dataset_id}")
-                return # we can return, because it's already in the dataset
+                return  # we can return, because it's already in the dataset
             except rucio.common.exception.RucioException:
                 retries += 1
                 if retries < max_retries:
-                    seconds = random.randint(10,20)
-                    logger.debug(f"failed to register single did to dataset {dataset_id}; sleeping {seconds} seconds")
+                    seconds = random.randint(10, 20)
+                    logger.debug(f"failed to register one did to {dataset_id}; sleeping {seconds}")
                     time.sleep(seconds)
-                    self.did_client = DIDClient() # XXX not sure we need to do this.
+                    self.did_client = DIDClient()  # XXX not sure we need to do this.
                 else:
                     # we tried max_retries times, and failed, so we'll bail out
-                    raise Exception(f"Tried {max_retries} times and couldn't add {did['pfn']} to dataset {dataset_id}")
-        
+                    raise Exception(f"Couldn't add {did['pfn']} to dataset {dataset_id}")
 
     def _add_files_to_dataset(self, dataset_id: str, dids: list[dict]) -> None:
         """Attach a list of files specified by Rucio DIDs to a Rucio dataset.
@@ -218,12 +218,12 @@ class RucioInterface:
             except rucio.common.exception.RucioException:
                 retries += 1
                 if retries < max_retries:
-                    seconds = random.randint(10,20)
-                    logger.debug(f"failed to register multiple dids to dataset {dataset_id}; sleeping {seconds} seconds")
+                    seconds = random.randint(10, 20)
+                    logger.debug(f"failed to register dids to {dataset_id}; sleeping {seconds}")
                     time.sleep(seconds)
                     continue
                 else:
-                    raise Exception(f"Tried {max_retries} times and couldn't add files to dataset {dataset_id}")
+                    raise Exception(f"Couldn't add files to dataset {dataset_id}")
 
     def _add_dataset_with_retries(self, dataset_id: str, statuses: dict) -> None:
         retries = 0
@@ -242,13 +242,12 @@ class RucioInterface:
             except rucio.common.exception.RucioException:
                 retries += 1
                 if retries < max_retries:
-                    seconds = random.randint(10,20)
-                    logger.debug(f"failed to register multiple dids to dataset {dataset_id}; sleeping {seconds} seconds")
+                    seconds = random.randint(10, 20)
+                    logger.debug(f"couldn't register dids to {dataset_id}; waiting {seconds}")
                     time.sleep(seconds)
                     continue
                 else:
                     raise Exception(f"Tried {max_retries} times and couldn't add dataset {dataset_id}")
-
 
     def register_to_dataset(self, bundles) -> None:
         """Register a list of files in Rucio.
