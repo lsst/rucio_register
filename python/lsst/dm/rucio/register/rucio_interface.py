@@ -160,10 +160,7 @@ class RucioInterface:
         while True:
             try:
                 self.did_client.add_files_to_dataset(
-                    scope=self.scope,
-                    name=dataset_id,
-                    files=[did],
-                    rse=self.rse
+                    scope=self.scope, name=dataset_id, files=[did], rse=self.rse
                 )
                 break
             except rucio.common.exception.FileAlreadyExists:
