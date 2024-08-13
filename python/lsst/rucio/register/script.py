@@ -48,7 +48,7 @@ def chunks(refs, chunk_size):
 
 
 def main():
-    """Command line interface for rucio-integration-register"""
+    """Command line interface for rucio-register"""
     ap = AppParser(sys.argv)
 
     # default to using RUCIO_REGISTER_CONFIG env variable

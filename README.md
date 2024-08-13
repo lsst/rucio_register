@@ -1,7 +1,7 @@
-# dm_rucio_register
+# rucio_register
 Command and API to add Butler specific information to Rucio metadata.
 
-This is a guide to using the dm_rucio_register command for registering
+This is a guide to using the rucio_register command for registering
 Butler files with Rucio.
 
 Butler files are expected to be located in a Rucio directory structure,
@@ -12,7 +12,7 @@ is "test", the files should be located below "/rucio/disks/xrd1/rucio/test".
 
 ## Example
 
-The command  "rucio-integration-register" registers files with Rucio. This
+The command  "rucio-register" registers files with Rucio. This
 command requires a YAML configuration file which specifies the Rucio rse and
 scope, as well as the root of the directory where files are deposited,
 and the external reference to the Rucio RSE. This configuration file
@@ -20,7 +20,7 @@ can be specified on the command line, or in the environment
 variable **RUCIO_REGISTER_CONFIG**.
 
 ```
-rucio-integration-register --repo /repo/main --collections HSC/runs/PDR2/PDR2-VVDS-FR/w_2024_02_DM-40654/step2a/group'*' --dataset-type visitSummary --rucio-dataset Dataset/HSC/runs/PDR2/PDR2-VVDS-FR/w_2024_02_DM-40654/step2a -C config.yaml
+rucio-register --repo /repo/main --collections HSC/runs/PDR2/PDR2-VVDS-FR/w_2024_02_DM-40654/step2a/group'*' --dataset-type visitSummary --rucio-dataset Dataset/HSC/runs/PDR2/PDR2-VVDS-FR/w_2024_02_DM-40654/step2a -C config.yaml
 ```
 
 This command looks for files registered in the butler repo "/repo/main" 
