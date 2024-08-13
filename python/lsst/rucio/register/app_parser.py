@@ -1,4 +1,4 @@
-# This file is part of dm_rucio_register
+# This file is part of rucio_register
 #
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project

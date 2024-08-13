@@ -1,4 +1,4 @@
-# This file is part of dm_rucio_register
+# This file is part of rucio_register
 #
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
@@ -29,7 +29,7 @@ from unittest.mock import MagicMock, patch
 import lsst.utils.tests
 from lsst.daf.butler import Butler, DatasetRef, FileDataset
 from lsst.daf.butler.registry import DatasetTypeError, MissingCollectionError
-from lsst.dm.rucio.register.rucio_interface import RucioInterface
+from lsst.rucio.register.rucio_interface import RucioInterface
 from lsst.pipe.base import Instrument
 from lsst.resources import ResourcePath
 from rucio.client.didclient import DIDClient

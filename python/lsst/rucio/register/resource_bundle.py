@@ -1,4 +1,4 @@
-# This file is part of dm_rucio_register
+# This file is part of rucio_register
 #
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
@@ -20,7 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pydantic
-from lsst.dm.rucio.register.rucio_did import RucioDID
+from lsst.rucio.register.rucio_did import RucioDID
 
 __all__ = ["ResourceBundle"]
 
