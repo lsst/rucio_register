@@ -8,12 +8,8 @@
 #   dependency if this package also declares higher-level dependencies.
 # - The utils package supports unit tests. This dependency can be removed
 #   if the package doesn't directly use its APIs in tests.
-setupRequired(base)
 setupRequired(utils)
-setupRequired(sconsUtils)
 setupRequired(daf_butler)
-setupRequired(log)
-setupRequired(obs_lsst)
 setupRequired(obs_subaru)
 
 # The following is boilerplate for all packages.

@@ -23,7 +23,6 @@ classifiers = [
 keywords = ["lsst"]
 dependencies = [
     "pyyaml >=5.1",
-    "lsst-base",
     "lsst-utils",
     "lsst-daf-butler",
     "pydantic >=2,<3.0",

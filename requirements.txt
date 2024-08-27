@@ -1,0 +1,9 @@
+pyyaml >=5.1
+lsst-base
+lsst-utils
+lsst-daf-butler
+pydantic >=2,<3.0
+rucio-clients
+lsst-utils @ git+https://github.com/lsst/utils@main
+lsst-daf-butler @ git+https://github.com/lsst/daf_butler@main
+lsst-obs_subaru @ git+https://github.com/lsst/obs_subaru@main
