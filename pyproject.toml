@@ -27,6 +27,7 @@ dependencies = [
     "lsst-utils",
     "lsst-daf-butler",
     "pydantic >=2,<3.0",
+    "rucio-clients",
 ]
 
 dynamic = ["version"]
