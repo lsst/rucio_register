@@ -29,9 +29,9 @@ from unittest.mock import MagicMock, patch
 import lsst.utils.tests
 from lsst.daf.butler import Butler, DatasetRef, FileDataset
 from lsst.daf.butler.registry import DatasetTypeError, MissingCollectionError
-from lsst.rucio.register.rucio_interface import RucioInterface
 from lsst.pipe.base import Instrument
 from lsst.resources import ResourcePath
+from lsst.rucio.register.rucio_interface import RucioInterface
 from rucio.client.didclient import DIDClient
 from rucio.client.replicaclient import ReplicaClient
 
