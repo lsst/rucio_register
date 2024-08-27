@@ -107,7 +107,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
             meta = did["meta"]
             self.assertEqual(meta["rubin_butler"], 1)
 
-            with open(self.json_file, "r") as f:
+            with open(self.json_file) as f:
                 metadata = json.loads(f.readline())
             sidecar = json.loads(meta["rubin_sidecar"])
             self.assertDictEqual(metadata, sidecar)
@@ -117,7 +117,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         shutil.rmtree(self.butler_repo, ignore_errors=True)
 
     def create_file_dataset(self, datafile: str, jsonfile: str):
-        with open(jsonfile, "r") as f:
+        with open(jsonfile) as f:
             metadata = f.readline()
         ref = DatasetRef.from_json(metadata, registry=self.butler.registry)
         fds = FileDataset(ResourcePath(f"file://{datafile}"), ref)

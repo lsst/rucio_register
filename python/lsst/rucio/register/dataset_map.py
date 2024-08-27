@@ -19,8 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict
-
 import yaml
 from pydantic import BaseModel
 
@@ -28,7 +26,7 @@ from pydantic import BaseModel
 class DatasetMap(BaseModel):
     """Mapping of dataset type to dataset templates"""
 
-    map: Dict[str, str]
+    map: dict[str, str]
 
     @classmethod
     def from_yaml(cls, path: str):
