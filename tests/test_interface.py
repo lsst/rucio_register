@@ -27,33 +27,25 @@ import tempfile
 from unittest.mock import MagicMock, patch
 
 import lsst.utils.tests
-from lsst.daf.butler import Butler, DatasetRef, FileDataset
-from lsst.daf.butler.registry import DatasetTypeError, MissingCollectionError
-from lsst.pipe.base import Instrument
+from lsst.daf.butler import Butler, DatasetRef, DimensionUniverse
+# from lsst.daf.butler.registry import DatasetTypeError, MissingCollectionError
 from lsst.resources import ResourcePath
 from lsst.rucio.register.rucio_interface import RucioInterface
 from rucio.client.didclient import DIDClient
 from rucio.client.replicaclient import ReplicaClient
+from rucio.common.exception import RucioException, FileAlreadyExists
+from rucio.common.exception import DataIdentifierNotFound, DataIdentifierAlreadyExists
 
 
 class InterfaceTestCase(lsst.utils.tests.TestCase):
 
     def setUp(self):
         self.butler_repo = tempfile.mkdtemp()
-
-        instr = Instrument.from_string("lsst.obs.subaru.HyperSuprimeCam")
-
-        Butler.makeRepo(self.butler_repo)
-        self.butler = Butler(self.butler_repo, writeable=True)
-        instr.register(self.butler.registry)
-
         test_dir = os.path.abspath(os.path.dirname(__file__))
 
-        dim_exposure = "dim_exposure.yaml"
-        dim_visit = "dim_visit.yaml"
+        self.dataset_ref_file = os.path.join(test_dir, "data", "dataset_ref.json")
 
-        self.butler.import_(filename=os.path.join(test_dir, "data", dim_exposure))
-        self.butler.import_(filename=os.path.join(test_dir, "data", dim_visit))
+        config = Butler.makeRepo(self.butler_repo)
 
         data_name = "visitSummary_HSC_y_HSC-Y_318_HSC_runs_RC2_w_2023_32_DM-40356_20230814T170253Z.fits"
         json_name = "visitSummary_HSC_y_HSC-Y_318_HSC_runs_RC2_w_2023_32_DM-40356_20230814T170253Z.json"
@@ -61,101 +53,134 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         self.data_file = os.path.join(test_dir, "data", data_name)
         self.json_file = os.path.join(test_dir, "data", json_name)
 
-        fds = self.create_file_dataset(self.data_file, self.json_file)
-        self.ingest([fds])
+        self.butler = Butler(self.butler_repo, writeable=True)
+        self.butler.getURI = MagicMock(return_value=ResourcePath(f"file://{self.data_file}"))
 
-    @patch.object(ReplicaClient, "__init__", return_value=None)
-    @patch.object(DIDClient, "__init__", return_value=None)
-    def testInterfaceTestCase(self, MockClass1, MockClass2):
+        self.rse_root = tempfile.mkdtemp()
+
+        # patch __init__ methods
+        self.rc_init = patch.object(ReplicaClient, '__init__', return_value=None)
+        self.dc_init = patch.object(DIDClient, '__init__', return_value=None)
+        self.rc_add_replicas = patch.object(ReplicaClient, 'add_replicas', return_value=None)
+        self.dc_attach_dids = patch.object(DIDClient, "attach_dids", return_value=None)
+        self.rand = patch('random.randint', return_value=1)
+
+        self.mock_rc_init = self.rc_init.start()
+        self.mock_dc_init = self.dc_init.start()
+        self.mock_rc_add_replicas = self.rc_add_replicas.start()
+        self.mock_dc_attach_dids = self.dc_attach_dids.start()
+        self.mock_rand = self.rand.start()
+
         rucio_rse = "DRR1"
         scope = "test"
-        rse_root = tempfile.mkdtemp()
+        dtn_url = "root://xrd1:1094//rucio"
+        self.ri = RucioInterface(self.butler, rucio_rse, scope, self.rse_root, dtn_url)
+
+    def testInterfaceTestCase(self):
+        rucio_rse = "DRR1"
+        scope = "test"
         dtn_url = "root://xrd1:1094//rucio"
 
-        ri = RucioInterface(self.butler, rucio_rse, scope, rse_root, dtn_url)
-        ri._add_replicas = MagicMock(name="_add_replicas")
-        ri.register_to_dataset = MagicMock(name="register_to_dataset")
+        cnt = 0
+        json_ref = None
+        with open(self.dataset_ref_file) as f:
+            json_ref = f.readline()
 
-        self.butler.registry.refresh()
+        ref = DatasetRef.from_json(json_ref, DimensionUniverse())
 
-        dataset_refs = self.butler.registry.queryDatasets(
-            "visitSummary",
-            collections="HSC/runs/RC2/w_2023_32/DM-40356/20230814T170253Z",
-        )
-        cnt = ri.register_as_replicas("mydataset", dataset_refs)
+        self.butler.registry.registerDatasetType(ref.datasetType)
+        cnt = self.ri.register_as_replicas("mydataset", [ref])
         self.assertEqual(cnt, 1)
 
-        dataset_refs = self.butler.registry.queryDatasets(
-            "visitSummary",
-            collections="HSC/runs/RC2/w_2023_32/DM-40356/20230814T170253Z",
-        )
+        rb = self.ri._make_bundle("mydataset", ref)
+        self.assertEqual(rb.dataset_id, "mydataset")
+
+        did = rb.did.model_dump()
+        self.assertEqual(did["pfn"], f"{dtn_url}{self.data_file}")
+        self.assertEqual(did["bytes"], 1365120)
+        self.assertEqual(did["adler32"], "480be4de")
+        self.assertEqual(did["md5"], "a7ee5c19f5717bcf8d772de202864244")
+        self.assertEqual(did["name"], self.data_file)
+        self.assertEqual(did["scope"], "test")
+
+        meta = did["meta"]
+        self.assertEqual(meta["rubin_butler"], 1)
+
+        with open(self.json_file) as f:
+            metadata = json.loads(f.readline())
+        sidecar = json.loads(meta["rubin_sidecar"])
+        self.assertDictEqual(metadata, sidecar)
+        cnt = cnt + 1
+
+    def common(self):
+
         cnt = 0
-        for ref in dataset_refs:
-            self.assertEqual(cnt, 0, "There should have been only one dataset ref retrieved")
+        json_ref = None
+        with open(self.dataset_ref_file) as f:
+            json_ref = f.readline()
 
-            rb = ri._make_bundle("mydataset", ref)
-            self.assertEqual(rb.dataset_id, "mydataset")
+        ref = DatasetRef.from_json(json_ref, DimensionUniverse())
 
-            did = rb.did.model_dump()
-            self.assertEqual(did["pfn"], f"{dtn_url}{self.data_file}")
-            self.assertEqual(did["bytes"], 1365120)
-            self.assertEqual(did["adler32"], "480be4de")
-            self.assertEqual(did["md5"], "a7ee5c19f5717bcf8d772de202864244")
-            self.assertEqual(did["name"], self.data_file)
-            self.assertEqual(did["scope"], "test")
+        self.butler.registry.registerDatasetType(ref.datasetType)
+        cnt = self.ri.register_as_replicas("mydataset", [ref])
 
-            meta = did["meta"]
-            self.assertEqual(meta["rubin_butler"], 1)
+    @patch.object(ReplicaClient, 'add_replicas', side_effect=RucioException('failed'))
+    def testException1TestCase(self, MC1):
+        self.ri.register_to_dataset = MagicMock(name="register_to_dataset")
+        with self.assertRaises(Exception):
+            self.common()
 
-            with open(self.json_file) as f:
-                metadata = json.loads(f.readline())
-            sidecar = json.loads(meta["rubin_sidecar"])
-            self.assertDictEqual(metadata, sidecar)
-            cnt = cnt + 1
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException('failed'))
+    def testException2TestCase(self, MC1):
+        with self.assertRaises(Exception):
+            self.common()
+
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=FileAlreadyExists('failed'))
+    def testException3TestCase(self, MC1):
+        self.common()
+
+    @patch.object(DIDClient, "add_dataset", return_value=None)
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=DataIdentifierNotFound('failed'))
+    def testException4TestCase(self, MC1, MC2):
+        with self.assertRaises(Exception):
+            self.common()
+
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException('failed'))
+    def testException5TestCase(self, MC1):
+        with self.assertRaises(Exception):
+            self.common()
+
+    @patch.object(DIDClient, "add_dataset", side_effect=DataIdentifierAlreadyExists('failed'))
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=DataIdentifierNotFound('failed'))
+    def testException6TestCase(self, MC1, MC2):
+        with self.assertRaises(Exception):
+            self.common()
+
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException('failed'))
+    def testException7TestCase(self, MC1):
+        with self.assertRaises(Exception):
+            self.common()
+
+    @patch.object(DIDClient, "add_dataset", side_effect=RucioException('failed'))
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=DataIdentifierNotFound('failed'))
+    def testException8TestCase(self, MC1, MC2):
+        with self.assertRaises(Exception):
+            self.common()
+
+    @patch.object(DIDClient, 'add_files_to_dataset', side_effect=RucioException('failed'))
+    def testException9Case(self, MC1):
+        rucio_rse = "DRR1"
+        scope = "test"
+        dtn_url = "root://xrd1:1094//rucio"
+
+        ri = RucioInterface(self.butler, rucio_rse, scope, self.rse_root, dtn_url)
+        with self.assertRaises(Exception):
+            ri._add_file_to_dataset_with_retries(None, None)
 
     def tearDown(self):
+        patch.stopall()
         shutil.rmtree(self.butler_repo, ignore_errors=True)
-
-    def create_file_dataset(self, datafile: str, jsonfile: str):
-        with open(jsonfile) as f:
-            metadata = f.readline()
-        ref = DatasetRef.from_json(metadata, registry=self.butler.registry)
-        fds = FileDataset(ResourcePath(f"file://{datafile}"), ref)
-        return fds
-
-    def ingest(self, datasets: list):
-        """Ingest a list of Datasets
-
-        Parameters
-        ----------
-        filedataset : `FileDataset`
-            A FileDataset
-        """
-        completed = False
-        while not completed:
-            try:
-                self.butler.ingest(*datasets, transfer="direct")
-                print("ingested")
-                completed = True
-            except DatasetTypeError:
-                print("DatasetTypeError")
-                dst_set = set()
-                for dataset in datasets:
-                    for dst in {ref.datasetType for ref in dataset.refs}:
-                        dst_set.add(dst)
-                for dst in dst_set:
-                    self.butler.registry.registerDatasetType(dst)
-            except MissingCollectionError:
-                print("MissingCollectionError")
-                run_set = set()
-                for dataset in datasets:
-                    for run in {ref.run for ref in dataset.refs}:
-                        run_set.add(run)
-                for run in run_set:
-                    self.butler.registry.registerRun(run)
-            except Exception as e:
-                print(f"Exception {e=}")
-                completed = True
+        shutil.rmtree(self.rse_root, ignore_errors=True)
 
 
 class MemoryTester(lsst.utils.tests.MemoryTestCase):

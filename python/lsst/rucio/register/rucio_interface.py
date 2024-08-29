@@ -233,6 +233,7 @@ class RucioInterface:
                     statuses=statuses,
                     rse=self.rse,
                 )
+                return
             except rucio.common.exception.DataIdentifierAlreadyExists as e:
                 # If someone else created it in the meantime
                 raise e

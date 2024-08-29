@@ -10,7 +10,6 @@
 #   if the package doesn't directly use its APIs in tests.
 setupRequired(utils)
 setupRequired(daf_butler)
-setupRequired(obs_subaru)
 
 # The following is boilerplate for all packages.
 # See https://dmtn-001.lsst.io for details on LSST_LIBRARY_PATH.
