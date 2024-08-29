@@ -1,0 +1,1 @@
+{"id":"6a74a3ce-bdee-4351-9e19-9d6dff176060","datasetType":{"name":"visitSummary","storageClass":"ExposureCatalog","dimensions":["band","instrument","physical_filter","visit"]},"dataId":{"dataId":{"instrument":"HSC","visit":318,"band":"y","physical_filter":"HSC-Y"}},"run":"HSC/runs/RC2/w_2023_32/DM-40356/20230814T170253Z"}
