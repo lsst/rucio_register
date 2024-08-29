@@ -28,13 +28,18 @@ from unittest.mock import MagicMock, patch
 
 import lsst.utils.tests
 from lsst.daf.butler import Butler, DatasetRef, DimensionUniverse
+
 # from lsst.daf.butler.registry import DatasetTypeError, MissingCollectionError
 from lsst.resources import ResourcePath
 from lsst.rucio.register.rucio_interface import RucioInterface
 from rucio.client.didclient import DIDClient
 from rucio.client.replicaclient import ReplicaClient
-from rucio.common.exception import RucioException, FileAlreadyExists
-from rucio.common.exception import DataIdentifierNotFound, DataIdentifierAlreadyExists
+from rucio.common.exception import (
+    DataIdentifierAlreadyExists,
+    DataIdentifierNotFound,
+    FileAlreadyExists,
+    RucioException,
+)
 
 
 class InterfaceTestCase(lsst.utils.tests.TestCase):
