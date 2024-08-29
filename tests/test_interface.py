@@ -64,11 +64,11 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         self.rse_root = tempfile.mkdtemp()
 
         # patch __init__ methods
-        self.rc_init = patch.object(ReplicaClient, '__init__', return_value=None)
-        self.dc_init = patch.object(DIDClient, '__init__', return_value=None)
-        self.rc_add_replicas = patch.object(ReplicaClient, 'add_replicas', return_value=None)
+        self.rc_init = patch.object(ReplicaClient, "__init__", return_value=None)
+        self.dc_init = patch.object(DIDClient, "__init__", return_value=None)
+        self.rc_add_replicas = patch.object(ReplicaClient, "add_replicas", return_value=None)
         self.dc_attach_dids = patch.object(DIDClient, "attach_dids", return_value=None)
-        self.rand = patch('random.randint', return_value=1)
+        self.rand = patch("random.randint", return_value=1)
 
         self.mock_rc_init = self.rc_init.start()
         self.mock_dc_init = self.dc_init.start()
@@ -129,50 +129,50 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         self.butler.registry.registerDatasetType(ref.datasetType)
         cnt = self.ri.register_as_replicas("mydataset", [ref])
 
-    @patch.object(ReplicaClient, 'add_replicas', side_effect=RucioException('failed'))
+    @patch.object(ReplicaClient, "add_replicas", side_effect=RucioException("failed"))
     def testException1TestCase(self, MC1):
         self.ri.register_to_dataset = MagicMock(name="register_to_dataset")
         with self.assertRaises(Exception):
             self.common()
 
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException('failed'))
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException("failed"))
     def testException2TestCase(self, MC1):
         with self.assertRaises(Exception):
             self.common()
 
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=FileAlreadyExists('failed'))
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=FileAlreadyExists("failed"))
     def testException3TestCase(self, MC1):
         self.common()
 
     @patch.object(DIDClient, "add_dataset", return_value=None)
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=DataIdentifierNotFound('failed'))
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=DataIdentifierNotFound("failed"))
     def testException4TestCase(self, MC1, MC2):
         with self.assertRaises(Exception):
             self.common()
 
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException('failed'))
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException("failed"))
     def testException5TestCase(self, MC1):
         with self.assertRaises(Exception):
             self.common()
 
-    @patch.object(DIDClient, "add_dataset", side_effect=DataIdentifierAlreadyExists('failed'))
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=DataIdentifierNotFound('failed'))
+    @patch.object(DIDClient, "add_dataset", side_effect=DataIdentifierAlreadyExists("failed"))
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=DataIdentifierNotFound("failed"))
     def testException6TestCase(self, MC1, MC2):
         with self.assertRaises(Exception):
             self.common()
 
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException('failed'))
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException("failed"))
     def testException7TestCase(self, MC1):
         with self.assertRaises(Exception):
             self.common()
 
-    @patch.object(DIDClient, "add_dataset", side_effect=RucioException('failed'))
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=DataIdentifierNotFound('failed'))
+    @patch.object(DIDClient, "add_dataset", side_effect=RucioException("failed"))
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=DataIdentifierNotFound("failed"))
     def testException8TestCase(self, MC1, MC2):
         with self.assertRaises(Exception):
             self.common()
 
-    @patch.object(DIDClient, 'add_files_to_dataset', side_effect=RucioException('failed'))
+    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException("failed"))
     def testException9Case(self, MC1):
         rucio_rse = "DRR1"
         scope = "test"
