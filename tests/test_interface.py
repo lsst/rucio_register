@@ -43,6 +43,7 @@ from rucio.common.exception import (
 
 
 class InterfaceTestCase(lsst.utils.tests.TestCase):
+    maxDiff = None
 
     def setUp(self):
         self.butler_repo = tempfile.mkdtemp()
