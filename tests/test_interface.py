@@ -50,7 +50,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
 
         self.dataset_ref_file = os.path.join(test_dir, "data", "dataset_ref.json")
 
-        config = Butler.makeRepo(self.butler_repo)
+        Butler.makeRepo(self.butler_repo)
 
         data_name = "visitSummary_HSC_y_HSC-Y_318_HSC_runs_RC2_w_2023_32_DM-40356_20230814T170253Z.fits"
         json_name = "visitSummary_HSC_y_HSC-Y_318_HSC_runs_RC2_w_2023_32_DM-40356_20230814T170253Z.json"
@@ -82,11 +82,8 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         self.ri = RucioInterface(self.butler, rucio_rse, scope, self.rse_root, dtn_url)
 
     def testInterfaceTestCase(self):
-        rucio_rse = "DRR1"
-        scope = "test"
         dtn_url = "root://xrd1:1094//rucio"
 
-        cnt = 0
         json_ref = None
         with open(self.dataset_ref_file) as f:
             json_ref = f.readline()
@@ -115,11 +112,9 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
             metadata = json.loads(f.readline())
         sidecar = json.loads(meta["rubin_sidecar"])
         self.assertDictEqual(metadata, sidecar)
-        cnt = cnt + 1
 
     def common(self):
 
-        cnt = 0
         json_ref = None
         with open(self.dataset_ref_file) as f:
             json_ref = f.readline()
@@ -127,7 +122,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         ref = DatasetRef.from_json(json_ref, DimensionUniverse())
 
         self.butler.registry.registerDatasetType(ref.datasetType)
-        cnt = self.ri.register_as_replicas("mydataset", [ref])
+        self.ri.register_as_replicas("mydataset", [ref])
 
     @patch.object(ReplicaClient, "add_replicas", side_effect=RucioException("failed"))
     def testException1TestCase(self, MC1):
