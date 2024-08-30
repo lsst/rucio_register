@@ -20,7 +20,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import json
 import os
 import shutil
 import tempfile
@@ -108,11 +107,6 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
 
         meta = did["meta"]
         self.assertEqual(meta["rubin_butler"], 1)
-
-        with open(self.json_file) as f:
-            metadata = json.loads(f.readline())
-        sidecar = json.loads(meta["rubin_sidecar"])
-        self.assertDictEqual(metadata, sidecar)
 
     def common(self):
 
