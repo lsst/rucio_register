@@ -1,10 +1,8 @@
-#!/usr/bin/env python
-
-# This file is part of dm_rucio_register
+# This file is part of rucio_register
 #
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
-# (http://www.lsst.org).
+# (https://www.lsst.org).
 # See the COPYRIGHT file at the top-level directory of this distribution
 # for details of code ownership.
 #
@@ -21,7 +19,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from lsst.dm.rucio.register.script import main
+import pydantic
 
-if __name__ == "__main__":
-    main()
+__all__ = ["RubinMeta"]
+
+
+class RubinMeta(pydantic.BaseModel):
+    rubin_butler: int
+    rubin_sidecar: str

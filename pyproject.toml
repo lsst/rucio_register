@@ -1,3 +1,39 @@
+[build-system]
+requires = ["setuptools", "lsst-versions >= 1.3.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lsst-rucio-register"
+requires-python = ">=3.11.0"
+description = "Tools for registering LSST metadata information into Rucio"
+license = {text = "GNU General Public License v3 or later (GPLv3+)"}
+readme = "README.md"
+authors = [
+    {name="Rubin Observatory Data Management", email="dm-admin@lists.lsst.org"},
+]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+keywords = ["lsst"]
+dependencies = [
+    "pyyaml >=5.1",
+    "lsst-utils",
+    "lsst-daf-butler",
+    "pydantic >=2,<3.0",
+    "rucio-clients",
+]
+
+dynamic = ["version"]
+
+[project.urls]
+"Homepage" = "https://github.com/lsst/rucio_register"
+
 [tool.black]
 line-length = 110
 target-version = ["py38"]
@@ -5,3 +41,16 @@ target-version = ["py38"]
 [tool.isort]
 profile = "black"
 line_length = 110
+
+[tool.lsst_versions]
+write_to = "python/lsst/rucio/register/version.py"
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"  # Recommended as best practice
+
+[tool.setuptools.packages.find]
+where = ["python"]
+    
+[tool.setuptools]
+zip-safe = true
+license-files = ["COPYRIGHT", "LICENSE"]

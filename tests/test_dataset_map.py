@@ -1,4 +1,4 @@
-# This file is part of dm_rucio_register
+# This file is part of rucio_register
 #
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
@@ -24,7 +24,7 @@ import os
 import unittest
 
 import lsst.utils.tests
-from lsst.dm.rucio.register.dataset_map import DatasetMap
+from lsst.rucio.register.dataset_map import DatasetMap
 
 
 class DatasetMapTestCase(unittest.TestCase):

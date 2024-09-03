@@ -1,4 +1,4 @@
-# This file is part of dm_rucio_register
+# This file is part of rucio_register
 #
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
@@ -26,9 +26,9 @@ import os
 import sys
 
 from lsst.daf.butler import Butler
-from lsst.dm.rucio.register.app_parser import AppParser
-from lsst.dm.rucio.register.rucio_interface import RucioInterface
-from lsst.dm.rucio.register.rucio_register_config import RucioRegisterConfig
+from lsst.rucio.register.app_parser import AppParser
+from lsst.rucio.register.rucio_interface import RucioInterface
+from lsst.rucio.register.rucio_register_config import RucioRegisterConfig
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ def chunks(refs, chunk_size):
 
 
 def main():
-    """Command line interface for rucio-integration-register"""
+    """Command line interface for rucio-register"""
     ap = AppParser(sys.argv)
 
     # default to using RUCIO_REGISTER_CONFIG env variable

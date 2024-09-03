@@ -1,4 +1,4 @@
-# This file is part of dm_rucio_register
+# This file is part of rucio_register
 #
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
@@ -24,7 +24,7 @@ import logging
 import unittest
 
 import lsst.utils.tests
-from lsst.dm.rucio.register.app_parser import AppParser
+from lsst.rucio.register.app_parser import AppParser
 
 
 class AppParserTestCase(unittest.TestCase):

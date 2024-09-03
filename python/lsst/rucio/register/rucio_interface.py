@@ -1,4 +1,4 @@
-# This file is part of dm_rucio_register
+# This file is part of rucio_register
 #
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
@@ -27,9 +27,9 @@ import zlib
 
 import lsst.daf.butler
 import rucio.common.exception
-from lsst.dm.rucio.register.resource_bundle import ResourceBundle
-from lsst.dm.rucio.register.rubin_meta import RubinMeta
-from lsst.dm.rucio.register.rucio_did import RucioDID
+from lsst.rucio.register.resource_bundle import ResourceBundle
+from lsst.rucio.register.rubin_meta import RubinMeta
+from lsst.rucio.register.rucio_did import RucioDID
 from rucio.client.didclient import DIDClient
 from rucio.client.replicaclient import ReplicaClient
 
@@ -233,6 +233,7 @@ class RucioInterface:
                     statuses=statuses,
                     rse=self.rse,
                 )
+                return
             except rucio.common.exception.DataIdentifierAlreadyExists as e:
                 # If someone else created it in the meantime
                 raise e

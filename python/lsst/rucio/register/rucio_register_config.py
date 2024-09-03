@@ -1,4 +1,4 @@
-# This file is part of dm_rucio_register
+# This file is part of rucio_register
 #
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
@@ -17,13 +17,24 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-import pydantic
-
-__all__ = ["RubinMeta"]
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import yaml
 
 
-class RubinMeta(pydantic.BaseModel):
-    rubin_butler: int
-    rubin_sidecar: str
+class RucioRegisterConfig:
+    """Describes a Rucio configuration
+
+    Parameters
+    ----------
+    config_file: `str`
+       path to configuration file
+    """
+
+    def __init__(self, config_file: str):
+        with open(config_file) as f:
+            config = yaml.safe_load(f)
+
+        self.rucio_rse = config["rucio_rse"]
+        self.scope = config["scope"]
+        self.rse_root = config["rse_root"]
+        self.dtn_url = config["dtn_url"]

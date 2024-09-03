@@ -7,7 +7,7 @@ services:
     volumes:
       - /tmp:/tmp/
       - ../../disks:/rucio/disks
-      - ../../dm_rucio_register:/home/lsst/dm_rucio_register
+      - ../../rucio_register:/home/lsst/rucio_register
       - ../../ctrl_ingestd:/home/lsst/ctrl_ingestd
       - ../../embargo-butler:/home/lsst/embargo-butler
       - ../../tmp_new:/home/lsst/tmp_new

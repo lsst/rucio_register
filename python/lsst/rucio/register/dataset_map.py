@@ -1,4 +1,4 @@
-# This file is part of dm_rucio_register
+# This file is part of rucio_register
 #
 # Developed for the LSST Data Management System.
 # This product includes software developed by the LSST Project
@@ -17,19 +17,20 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import pydantic
-from lsst.dm.rucio.register.rubin_meta import RubinMeta
-
-__all__ = ["RucioDID"]
+import yaml
+from pydantic import BaseModel
 
 
-class RucioDID(pydantic.BaseModel):
-    pfn: str
-    bytes: int
-    adler32: str
-    md5: str
-    name: str
-    scope: str
-    meta: RubinMeta
+class DatasetMap(BaseModel):
+    """Mapping of dataset type to dataset templates"""
+
+    map: dict[str, str]
+
+    @classmethod
+    def from_yaml(cls, path: str):
+        """Create an object populated by a YAML file"""
+        with open(path) as f:
+            s = yaml.safe_load(f)
+        return cls(**s)
