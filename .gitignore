@@ -1,0 +1,9 @@
+python/*.dist-info/
+_build.*
+.coverage*
+python/lsst/rucio/register/version.py
+__pycache__
+tests/.tests/
+bin/
+config.log
+.sconsign.dblite
