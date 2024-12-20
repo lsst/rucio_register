@@ -56,6 +56,8 @@ class RucioInterface:
         Full path to root directory of RSE directory structure
     dtn_url: `str`
         Base URL of the data transfer node for the Rucio physical filename.
+    rubin_butler_type: `str`
+        the type registered in "rubin_butler" metadata for rucio
     """
 
     def __init__(
@@ -65,6 +67,7 @@ class RucioInterface:
         scope: str,
         rse_root: str,
         dtn_url: str,
+        rubin_butler_type: str,
     ):
         self.butler = butler
         self.rse = rucio_rse
@@ -74,6 +77,7 @@ class RucioInterface:
         self.pfn_base = f"{dtn_url}"
         self.replica_client = ReplicaClient()
         self.did_client = DIDClient()
+        self.rubin_butler_type = rubin_butler_type
 
     def _make_bundle(self, dataset_id, dataset_ref) -> ResourceBundle:
         """Make a ResourceBundle
@@ -118,7 +122,7 @@ class RucioInterface:
         logging.debug(f"{name=}")
         logging.debug(f"{path=}")
 
-        meta = RubinMeta(rubin_butler=DataType.DATA_PRODUCT, rubin_sidecar=metadata)
+        meta = RubinMeta(rubin_butler=self.rubin_butler_type, rubin_sidecar=metadata)
         d = RucioDID(
             pfn=pfn,
             bytes=size,
