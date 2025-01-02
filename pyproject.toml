@@ -34,6 +34,9 @@ dynamic = ["version"]
 [project.urls]
 "Homepage" = "https://github.com/lsst/rucio_register"
 
+[project.scripts]
+rucio-register = "lsst.rucio.register.script:main"
+
 [tool.black]
 line-length = 110
 target-version = ["py38"]
@@ -50,7 +53,7 @@ addopts = "--import-mode=importlib"  # Recommended as best practice
 
 [tool.setuptools.packages.find]
 where = ["python"]
-    
+
 [tool.setuptools]
 zip-safe = true
 license-files = ["COPYRIGHT", "LICENSE"]
