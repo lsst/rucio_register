@@ -89,6 +89,7 @@ class RucioInterface:
         dataset_ref: `DatasetRef`
             Butler DatasetRef
         """
+        logging.debug(f"{dataset_ref.to_json()}")
         did = self._make_did(self.butler.getURI(dataset_ref), dataset_ref.to_json())
         rb = ResourceBundle(dataset_id=dataset_id, did=did)
         return rb
@@ -301,7 +302,13 @@ class RucioInterface:
         """
         bundles = []
         for dataset_ref in dataset_refs:
-            bundles.append(self._make_bundle(dataset_id, dataset_ref))
+            if type(dataset_ref) == list:
+                for dsr in dataset_ref:
+                    logging.debug(f"{self.butler.getURI(dsr)=}")
+                    logging.debug(f"{dsr.to_json()=}")
+                    bundles.append(self._make_bundle(dataset_id, dsr))
+            else:
+                bundles.append(self._make_bundle(dataset_id, dataset_ref))
         if len(bundles) == 0:
             return 0
         self._add_replicas(bundles)
