@@ -87,7 +87,7 @@ def getRucioInterface(repo, rucio_register_config, rubin_butler_type):
 def _register(ri, dataset_refs, chunk_size, rucio_dataset):
     # register dataset_refs with Rucio into the rucio dataset, in chunks
     for refs in chunks(dataset_refs, chunk_size):
-        print(f"x: {chunk_size=}, {rucio_dataset=}, {refs=}")
+        logger.debug(f"x: {chunk_size=}, {rucio_dataset=}, {refs=}")
         cnt = ri.register_as_replicas(rucio_dataset, refs)
         logger.debug(f"{cnt} butler datasets registered")
 
@@ -157,9 +157,6 @@ def raws(**kwargs: Any) -> None:
 
     ri, butler = getRucioInterface(repo, rucio_register_config, DataType.RAW_FILE)
 
-    print("a")
     dataset_refs = QueryDatasets(**kwargs).getDatasets()
-    print("b")
 
     _register(ri, dataset_refs, chunk_size, rucio_dataset)
-    print("c")
