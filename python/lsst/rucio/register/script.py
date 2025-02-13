@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import click
 import itertools
 import logging
 import os
@@ -27,14 +26,14 @@ import os
 # import sys
 from typing import Any
 
-from lsst.daf.butler import Butler
-from lsst.daf.butler.script.queryDatasets import QueryDatasets
-from lsst.daf.butler.cli.opt import query_datasets_options
-from lsst.daf.butler.cli.opt import options_file_option
+import click
 
+from lsst.daf.butler import Butler
+from lsst.daf.butler.cli.opt import options_file_option, query_datasets_options
+from lsst.daf.butler.script.queryDatasets import QueryDatasets
+from lsst.rucio.register.data_type import DataType
 from lsst.rucio.register.rucio_interface import RucioInterface
 from lsst.rucio.register.rucio_register_config import RucioRegisterConfig
-from lsst.rucio.register.data_type import DataType
 
 logger = logging.getLogger(__name__)
 _FORMAT = (
@@ -57,7 +56,6 @@ def chunks(refs, chunk_size):
 
 
 def getRucioInterface(repo, rucio_register_config, rubin_butler_type):
-
     # default to using RUCIO_REGISTER_CONFIG env variable
     # if that's not set, try to use the command line
     # if neither are set, then raise an Exception
@@ -126,7 +124,6 @@ def main():
 )
 @main.command()
 def data_products(repo, collections, dataset_type, rucio_dataset, rucio_register_config, debug, chunk_size):
-
     _set_log_level(debug)
 
     ri, butler = getRucioInterface(repo, rucio_register_config, DataType.DATA_PRODUCT)
