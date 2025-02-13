@@ -29,7 +29,6 @@ from lsst.rucio.register.rucio_did import RucioDID
 
 
 class ResourceBundleTestCase(unittest.TestCase):
-
     def testResourceBundle(self):
         meta = RubinMeta(rubin_butler=1, rubin_sidecar="mysidecar")
         did = RucioDID(

@@ -20,6 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pydantic
+
 from lsst.rucio.register.rucio_did import RucioDID
 
 __all__ = ["ResourceBundle"]

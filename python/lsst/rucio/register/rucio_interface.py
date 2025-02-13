@@ -25,13 +25,14 @@ import random
 import time
 import zlib
 
-import lsst.daf.butler
 import rucio.common.exception
+from rucio.client.didclient import DIDClient
+from rucio.client.replicaclient import ReplicaClient
+
+import lsst.daf.butler
 from lsst.rucio.register.resource_bundle import ResourceBundle
 from lsst.rucio.register.rubin_meta import RubinMeta
 from lsst.rucio.register.rucio_did import RucioDID
-from rucio.client.didclient import DIDClient
-from rucio.client.replicaclient import ReplicaClient
 
 __all__ = ["RucioInterface"]
 

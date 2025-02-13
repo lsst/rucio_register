@@ -25,12 +25,6 @@ import shutil
 import tempfile
 from unittest.mock import MagicMock, patch
 
-import lsst.utils.tests
-from lsst.daf.butler import Butler, DatasetRef, DimensionUniverse
-
-# from lsst.daf.butler.registry import DatasetTypeError, MissingCollectionError
-from lsst.resources import ResourcePath
-from lsst.rucio.register.rucio_interface import RucioInterface
 from rucio.client.didclient import DIDClient
 from rucio.client.replicaclient import ReplicaClient
 from rucio.common.exception import (
@@ -39,6 +33,13 @@ from rucio.common.exception import (
     FileAlreadyExists,
     RucioException,
 )
+
+import lsst.utils.tests
+from lsst.daf.butler import Butler, DatasetRef, DimensionUniverse
+
+# from lsst.daf.butler.registry import DatasetTypeError, MissingCollectionError
+from lsst.resources import ResourcePath
+from lsst.rucio.register.rucio_interface import RucioInterface
 
 
 class InterfaceTestCase(lsst.utils.tests.TestCase):
@@ -109,7 +110,6 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(meta["rubin_butler"], 1)
 
     def common(self):
-
         json_ref = None
         with open(self.dataset_ref_file) as f:
             json_ref = f.readline()

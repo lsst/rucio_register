@@ -28,7 +28,6 @@ from lsst.rucio.register.dataset_map import DatasetMap
 
 
 class DatasetMapTestCase(unittest.TestCase):
-
     def testDatasetMap(self):
         test_dir = os.path.abspath(os.path.dirname(__file__))
         map_file = os.path.join(test_dir, "data", "map.yaml")

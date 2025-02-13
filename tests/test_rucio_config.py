@@ -28,7 +28,6 @@ from lsst.rucio.register.rucio_register_config import RucioRegisterConfig
 
 
 class RucioRegisterConfigTestCase(unittest.TestCase):
-
     def testConfig1(self):
         test_dir = os.path.abspath(os.path.dirname(__file__))
         config_file = os.path.join(test_dir, "data", "config1.yaml")

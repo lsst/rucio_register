@@ -44,6 +44,7 @@ target-version = ["py38"]
 [tool.isort]
 profile = "black"
 line_length = 110
+known_first_party = ["lsst"]
 
 [tool.lsst_versions]
 write_to = "python/lsst/rucio/register/version.py"
@@ -57,3 +58,48 @@ where = ["python"]
 [tool.setuptools]
 zip-safe = true
 license-files = ["COPYRIGHT", "LICENSE"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+exclude = [
+    "__init__.py",
+]
+
+[tool.ruff.lint]
+ignore = [
+    "N802",
+    "N803",
+    "N806",
+    "N812",
+    "N815",
+    "N816",
+    "N999",
+]
+select = [
+    "E",  # pycodestyle
+    "F",  # pycodestyle
+    "N",  # pep8-naming
+    "W",  # pycodestyle
+    "UP",  # pyupgrade
+    "I",  # isort
+    "RUF022",  # sort __all__
+]
+
+[tool.ruff.lint.per-file-ignores]
+# parserYacc docstrings can not be fixed. Docstrings are used to define grammar.
+"python/lsst/daf/butler/registry/queries/expressions/parser/parserYacc.py" = ["D401", "D403"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lsst"]
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 79
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.format]
+docstring-code-format = true
+# Formatter does not know about indenting.
+docstring-code-line-length = 69
