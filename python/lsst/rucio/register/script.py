@@ -80,9 +80,10 @@ def getRucioInterface(repo, rucio_register_config, rubin_butler_type):
         scope=scope,
         rse_root=rse_root,
         dtn_url=dtn_url,
-	rubin_butler_type=rubin_butler_type,
+        rubin_butler_type=rubin_butler_type,
     )
     return ri, butler
+
 
 def _register(ri, dataset_refs, chunk_size, rucio_dataset):
     # register dataset_refs with Rucio into the rucio dataset, in chunks
@@ -94,11 +95,12 @@ def _register(ri, dataset_refs, chunk_size, rucio_dataset):
 
 def _set_log_level(debug):
     if debug is None:
-       log_level = logging.WARNING
+        log_level = logging.WARNING
     else:
-       log_level = logging.DEBUG
+        log_level = logging.DEBUG
 
     logging.basicConfig(level=log_level, format=(_FORMAT), datefmt="%Y-%m-%d %H:%M:%S")
+
 
 @click.group()
 def main():
@@ -130,9 +132,10 @@ def data_products(repo, collections, dataset_type, rucio_dataset, rucio_register
 def _get_and_delete(kwargs, key):
     x = kwargs.get(key, None)
     if x is None:
-       return x
+        return x
     del kwargs[key]
     return x
+
 
 @main.command()
 @click.option("-r", "--repo", required=True, type=str, help="butler repository")
@@ -145,7 +148,7 @@ def _get_and_delete(kwargs, key):
 @options_file_option()
 @query_datasets_options(repo=False, showUri=True)
 def raws(**kwargs: Any) -> None:
-    # have to get and delete from kwargs, because QueryDatasets doesn't like extra args
+    # get and delete from kwargs; QueryDatasets doesn't like extra args
     debug = _get_and_delete(kwargs, "debug")
     _set_log_level(debug)
 

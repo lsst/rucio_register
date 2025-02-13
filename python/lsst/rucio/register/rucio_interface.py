@@ -30,7 +30,6 @@ from rucio.client.didclient import DIDClient
 from rucio.client.replicaclient import ReplicaClient
 
 import lsst.daf.butler
-from lsst.rucio.register.data_type import DataType
 from lsst.rucio.register.resource_bundle import ResourceBundle
 from lsst.rucio.register.rubin_meta import RubinMeta
 from lsst.rucio.register.rucio_did import RucioDID
@@ -302,7 +301,7 @@ class RucioInterface:
         """
         bundles = []
         for dataset_ref in dataset_refs:
-            if type(dataset_ref) == list:
+            if dataset_ref is list:
                 for dsr in dataset_ref:
                     logging.debug(f"{self.butler.getURI(dsr)=}")
                     logging.debug(f"{dsr.to_json()=}")

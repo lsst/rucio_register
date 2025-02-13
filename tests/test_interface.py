@@ -81,7 +81,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         rucio_rse = "DRR1"
         scope = "test"
         dtn_url = "root://xrd1:1094//rucio"
-        self.ri = RucioInterface(self.butler, rucio_rse, scope, self.rse_root, dtn_url)
+        self.ri = RucioInterface(self.butler, rucio_rse, scope, self.rse_root, dtn_url, DataType.DATA_PRODUCT)
 
     def testInterfaceTestCase(self):
         dtn_url = "root://xrd1:1094//rucio"
@@ -169,7 +169,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         scope = "test"
         dtn_url = "root://xrd1:1094//rucio"
 
-        ri = RucioInterface(self.butler, rucio_rse, scope, self.rse_root, dtn_url)
+        ri = RucioInterface(self.butler, rucio_rse, scope, self.rse_root, dtn_url, DataType.DATA_PRODUCT)
         with self.assertRaises(Exception):
             ri._add_file_to_dataset_with_retries(None, None)
 
