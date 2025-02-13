@@ -20,6 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pydantic
+
 from lsst.rucio.register.rubin_meta import RubinMeta
 
 __all__ = ["RucioDID"]
