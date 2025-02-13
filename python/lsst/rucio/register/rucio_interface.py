@@ -301,7 +301,7 @@ class RucioInterface:
         """
         bundles = []
         for dataset_ref in dataset_refs:
-            if dataset_ref is list:
+            if isinstance(dataset_ref, list):
                 for dsr in dataset_ref:
                     logging.debug(f"{self.butler.getURI(dsr)=}")
                     logging.debug(f"{dsr.to_json()=}")
