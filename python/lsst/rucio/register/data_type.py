@@ -19,6 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
 class DataType:
     DATA_PRODUCT = "data_product"
     RAW_FILE = "raw_file"

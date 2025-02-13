@@ -23,6 +23,7 @@ import click
 import itertools
 import logging
 import os
+
 # import sys
 from typing import Any
 
@@ -111,11 +112,18 @@ def main():
 @click.option("-c", "--collections", required=True, type=str, help="collections for lookup")
 @click.option("-t", "--dataset-type", required=True, type=str, help="dataset type for lookup")
 @click.option("-d", "--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
-@click.option("-C", "--rucio-register-config", required=False, type=str,
-              help="configuration file used for registration")
+@click.option(
+    "-C", "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
+)
 @click.option("-D", "--debug", required=False, is_flag=True, help="set loglevel to DEBUG")
-@click.option("-s", "--chunk-size", required=False, type=int, default=30,
-              help="number of replica requests to make at once")
+@click.option(
+    "-s",
+    "--chunk-size",
+    required=False,
+    type=int,
+    default=30,
+    help="number of replica requests to make at once",
+)
 @main.command()
 def data_products(repo, collections, dataset_type, rucio_dataset, rucio_register_config, debug, chunk_size):
 
@@ -140,10 +148,17 @@ def _get_and_delete(kwargs, key):
 @main.command()
 @click.option("-r", "--repo", required=True, type=str, help="butler repository")
 @click.option("-d", "--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
-@click.option("-C", "--rucio-register-config", required=False, type=str,
-              help="configuration file used for registration")
-@click.option("-s", "--chunk-size", required=False, type=int, default=30,
-              help="number of replica requests to make at once")
+@click.option(
+    "-C", "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
+)
+@click.option(
+    "-s",
+    "--chunk-size",
+    required=False,
+    type=int,
+    default=30,
+    help="number of replica requests to make at once",
+)
 @click.option("-D", "--debug", required=False, is_flag=True, help="set loglevel to DEBUG")
 @options_file_option()
 @query_datasets_options(repo=False, showUri=True)
