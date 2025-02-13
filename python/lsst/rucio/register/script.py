@@ -101,7 +101,7 @@ def _set_log_level(debug):
     logging.basicConfig(level=log_level, format=(_FORMAT), datefmt="%Y-%m-%d %H:%M:%S")
 
 
-@click.group()
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
 def main():
     pass
 
