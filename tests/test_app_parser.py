@@ -28,7 +28,6 @@ from lsst.rucio.register.app_parser import AppParser
 
 
 class AppParserTestCase(unittest.TestCase):
-
     def testAppParser(self):
         argv = [
             "unittest",

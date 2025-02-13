@@ -110,7 +110,6 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(meta["rubin_butler"], 1)
 
     def common(self):
-
         json_ref = None
         with open(self.dataset_ref_file) as f:
             json_ref = f.readline()
