@@ -55,6 +55,8 @@ class RucioInterface:
         Full path to root directory of RSE directory structure
     dtn_url: `str`
         Base URL of the data transfer node for the Rucio physical filename.
+    rubin_butler_type: `str`
+        the type registered in "rubin_butler" metadata for rucio
     """
 
     def __init__(
@@ -64,6 +66,7 @@ class RucioInterface:
         scope: str,
         rse_root: str,
         dtn_url: str,
+        rubin_butler_type: str,
     ):
         self.butler = butler
         self.rse = rucio_rse
@@ -73,6 +76,7 @@ class RucioInterface:
         self.pfn_base = f"{dtn_url}"
         self.replica_client = ReplicaClient()
         self.did_client = DIDClient()
+        self.rubin_butler_type = rubin_butler_type
 
     def _make_bundle(self, dataset_id, dataset_ref) -> ResourceBundle:
         """Make a ResourceBundle
@@ -84,6 +88,7 @@ class RucioInterface:
         dataset_ref: `DatasetRef`
             Butler DatasetRef
         """
+        logging.debug(f"{dataset_ref.to_json()}")
         did = self._make_did(self.butler.getURI(dataset_ref), dataset_ref.to_json())
         rb = ResourceBundle(dataset_id=dataset_id, did=did)
         return rb
@@ -117,7 +122,7 @@ class RucioInterface:
         logging.debug(f"{name=}")
         logging.debug(f"{path=}")
 
-        meta = RubinMeta(rubin_butler=1, rubin_sidecar=metadata)
+        meta = RubinMeta(rubin_butler=self.rubin_butler_type, rubin_sidecar=metadata)
         d = RucioDID(
             pfn=pfn,
             bytes=size,
@@ -296,7 +301,13 @@ class RucioInterface:
         """
         bundles = []
         for dataset_ref in dataset_refs:
-            bundles.append(self._make_bundle(dataset_id, dataset_ref))
+            if type(dataset_ref) is list:
+                for dsr in dataset_ref:
+                    logging.debug(f"{self.butler.getURI(dsr)=}")
+                    logging.debug(f"{dsr.to_json()=}")
+                    bundles.append(self._make_bundle(dataset_id, dsr))
+            else:
+                bundles.append(self._make_bundle(dataset_id, dataset_ref))
         if len(bundles) == 0:
             return 0
         self._add_replicas(bundles)
