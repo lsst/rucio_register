@@ -29,11 +29,8 @@ rucio-register data-products -r /rucio/disks/xrd1/rucio/test -c HSC/runs/RC2/w_2
 for raws:
 ```
 rucio-register raws -r /rucio/disks/xrd1/rucio/test -d rubin_dataset --collections LATISS/raw/all -C register_config.yaml
-
-Note that for raws, this is similar to how one uses the butler command
-
-
 ```
+Note that for raws, this is similar to how one uses the butler command
 
 This command looks for files registered in the butler repo "/repo/main"
 using the "dataset-type" and "collections" arguments to query the butler. Note
