@@ -21,11 +21,13 @@ variable **RUCIO_REGISTER_CONFIG**.
 
 The command can register data-products or raws:
 
-```
 for data products:
+```
 rucio-register data-products -r /rucio/disks/xrd1/rucio/test -c HSC/runs/RC2/w_2023_32/DM-40356/20230814T170253Z -t visitSummary -d rubin_dataset -C register_config.yaml
+```
 
 for raws:
+```
 rucio-register raws -r /rucio/disks/xrd1/rucio/test -d rubin_dataset --collections LATISS/raw/all -C register_config.yaml
 
 Note that for raws, this is similar to how one uses the butler command
