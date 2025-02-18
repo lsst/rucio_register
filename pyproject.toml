@@ -39,7 +39,7 @@ rucio-register = "lsst.rucio.register.script:main"
 
 [tool.black]
 line-length = 110
-target-version = ["py38"]
+target-version = ["py311"]
 
 [tool.isort]
 profile = "black"

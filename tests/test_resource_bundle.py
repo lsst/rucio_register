@@ -23,6 +23,7 @@
 import unittest
 
 import lsst.utils.tests
+from lsst.rucio.register.data_type import DataType
 from lsst.rucio.register.resource_bundle import ResourceBundle
 from lsst.rucio.register.rubin_meta import RubinMeta
 from lsst.rucio.register.rucio_did import RucioDID
@@ -30,7 +31,7 @@ from lsst.rucio.register.rucio_did import RucioDID
 
 class ResourceBundleTestCase(unittest.TestCase):
     def testResourceBundle(self):
-        meta = RubinMeta(rubin_butler=1, rubin_sidecar="mysidecar")
+        meta = RubinMeta(rubin_butler=DataType.DATA_PRODUCT, rubin_sidecar="mysidecar")
         did = RucioDID(
             pfn="string1", bytes=451, adler32="32", md5="0x5", name="myname", scope="mouthwash", meta=meta
         )

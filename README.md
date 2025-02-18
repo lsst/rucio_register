@@ -19,9 +19,18 @@ and the external reference to the Rucio RSE. This configuration file
 can be specified on the command line, or in the environment
 variable **RUCIO_REGISTER_CONFIG**.
 
+The command can register data-products or raws:
+
+for data products:
 ```
-rucio-register --repo /repo/main --collections HSC/runs/PDR2/PDR2-VVDS-FR/w_2024_02_DM-40654/step2a/group'*' --dataset-type visitSummary --rucio-dataset Dataset/HSC/runs/PDR2/PDR2-VVDS-FR/w_2024_02_DM-40654/step2a -C config.yaml
+rucio-register data-products -r /rucio/disks/xrd1/rucio/test -c HSC/runs/RC2/w_2023_32/DM-40356/20230814T170253Z -t visitSummary -d rubin_dataset -C register_config.yaml
 ```
+
+for raws:
+```
+rucio-register raws -r /rucio/disks/xrd1/rucio/test -d rubin_dataset --collections LATISS/raw/all -C register_config.yaml
+```
+Note that for raws, this is similar to how one uses the butler command
 
 This command looks for files registered in the butler repo "/repo/main"
 using the "dataset-type" and "collections" arguments to query the butler. Note
