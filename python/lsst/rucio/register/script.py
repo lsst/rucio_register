@@ -23,7 +23,6 @@ import itertools
 import logging
 import os
 
-# import sys
 from typing import Any
 
 import click
@@ -55,7 +54,7 @@ def chunks(refs, chunk_size):
         yield itertools.chain((start,), chunk)
 
 
-def getRucioInterface(repo, rucio_register_config, rubin_butler_type):
+def _getRucioInterface(repo, rucio_register_config, rubin_butler_type):
     # default to using RUCIO_REGISTER_CONFIG env variable
     # if that's not set, try to use the command line
     # if neither are set, then raise an Exception
@@ -126,7 +125,7 @@ def main():
 def data_products(repo, collections, dataset_type, rucio_dataset, rucio_register_config, debug, chunk_size):
     _set_log_level(debug)
 
-    ri, butler = getRucioInterface(repo, rucio_register_config, DataType.DATA_PRODUCT)
+    ri, butler = _getRucioInterface(repo, rucio_register_config, DataType.DATA_PRODUCT)
 
     # query the butler for the datasets specified on the commmand line
     dataset_refs = butler.registry.queryDatasets(dataset_type, collections=collections)
@@ -170,7 +169,7 @@ def raws(**kwargs: Any) -> None:
 
     repo = kwargs["repo"]
 
-    ri, butler = getRucioInterface(repo, rucio_register_config, DataType.RAW_FILE)
+    ri, butler = _getRucioInterface(repo, rucio_register_config, DataType.RAW_FILE)
 
     dataset_refs = QueryDatasets(**kwargs).getDatasets()
 
