@@ -36,6 +36,7 @@ dynamic = ["version"]
 
 [project.scripts]
 rucio-register = "lsst.rucio.register.script:main"
+export-datasets = "lsst.rucio.register.export:main"
 
 [tool.black]
 line-length = 110
