@@ -92,10 +92,10 @@ def _register(ri, dataset_refs, chunk_size, rucio_dataset):
 
 
 def _set_log_level(debug):
-    if debug is None:
-        log_level = logging.WARNING
-    else:
+    if debug:
         log_level = logging.DEBUG
+    else:
+        log_level = logging.WARNING
 
     logging.basicConfig(level=log_level, format=(_FORMAT), datefmt="%Y-%m-%d %H:%M:%S")
 
