@@ -171,6 +171,7 @@ def raws(**kwargs: Any) -> None:
 
     ri, butler = _getRucioInterface(repo, rucio_register_config, DataType.RAW_FILE)
 
-    dataset_refs = QueryDatasets(**kwargs).getDatasets()
+    # chain is needed to flatten the list of lists returned by getDatasets()
+    dataset_refs = itertools.chain.from_iterable(QueryDatasets(**kwargs).getDatasets())
 
     _register(ri, dataset_refs, chunk_size, rucio_dataset)
