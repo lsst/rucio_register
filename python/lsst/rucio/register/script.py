@@ -30,6 +30,7 @@ import click
 from lsst.daf.butler import Butler
 from lsst.daf.butler.cli.opt import options_file_option, query_datasets_options
 from lsst.daf.butler.script.queryDatasets import QueryDatasets
+from lsst.resources import ResourcePath
 from lsst.rucio.register.data_type import DataType
 from lsst.rucio.register.rucio_interface import RucioInterface
 from lsst.rucio.register.rucio_register_config import RucioRegisterConfig
@@ -69,7 +70,9 @@ def _getRucioInterface(repo, rucio_register_config, rubin_butler_type):
     rse_root = config.rse_root
     dtn_url = config.dtn_url
 
-    butler = Butler(repo)
+    butler = None
+    if repo:
+        butler = Butler(repo)
 
     # create RucioInterface object used to register replicas into datasets
     ri = RucioInterface(
@@ -90,10 +93,18 @@ def _register(ri, dataset_refs, chunk_size, rucio_dataset):
         cnt = ri.register_as_replicas(rucio_dataset, refs)
         logger.debug(f"{cnt} butler datasets registered")
 
+def _register_zips(ri, zip_files, chunk_size, rucio_dataset):
+    # register dataset_refs with Rucio into the rucio dataset, in chunks
+    for zip_file in zip_files:
+        rp = ResourcePath(zip_file)
+        cnt = ri.register_zips(rucio_dataset, [rp])
+        logger.debug(f"{cnt} zips registered")
 
-def _set_log_level(debug):
+def _set_log_level(debug, info):
     if debug:
         log_level = logging.DEBUG
+    elif info:
+        log_level = logging.INFO
     else:
         log_level = logging.WARNING
 
@@ -113,6 +124,7 @@ def main():
     "-C", "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
 )
 @click.option("-D", "--debug", required=False, is_flag=True, help="set loglevel to DEBUG")
+@click.option("-i", "--info", required=False, is_flag=True, help="set loglevel to INFO")
 @click.option(
     "-s",
     "--chunk-size",
@@ -122,8 +134,11 @@ def main():
     help="number of replica requests to make at once",
 )
 @main.command()
-def data_products(repo, collections, dataset_type, rucio_dataset, rucio_register_config, debug, chunk_size):
-    _set_log_level(debug)
+def data_products(
+    repo, collections, dataset_type, rucio_dataset,
+    rucio_register_config, debug, info, chunk_size
+):
+    _set_log_level(debug, info)
 
     ri, butler = _getRucioInterface(repo, rucio_register_config, DataType.DATA_PRODUCT)
 
@@ -156,12 +171,14 @@ def _get_and_delete(kwargs, key):
     help="number of replica requests to make at once",
 )
 @click.option("-D", "--debug", required=False, is_flag=True, help="set loglevel to DEBUG")
+@click.option("-i", "--info", required=False, is_flag=True, help="set loglevel to INFO")
 @options_file_option()
 @query_datasets_options(repo=False, showUri=True)
 def raws(**kwargs: Any) -> None:
     # get and delete from kwargs; QueryDatasets doesn't like extra args
     debug = _get_and_delete(kwargs, "debug")
-    _set_log_level(debug)
+    info = _get_and_delete(kwargs, "info")
+    _set_log_level(debug, info)
 
     rucio_register_config = _get_and_delete(kwargs, "rucio_register_config")
     rucio_dataset = _get_and_delete(kwargs, "rucio_dataset")
@@ -175,3 +192,26 @@ def raws(**kwargs: Any) -> None:
     dataset_refs = itertools.chain.from_iterable(QueryDatasets(**kwargs).getDatasets())
 
     _register(ri, dataset_refs, chunk_size, rucio_dataset)
+
+@main.command()
+@click.option("-d", "--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
+@click.option(
+    "-C", "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
+)
+@click.option(
+    "-s",
+    "--chunk-size",
+    required=False,
+    type=int,
+    default=30,
+    help="number of replica requests to make at once",
+)
+@click.option("-D", "--debug", required=False, is_flag=True, help="set loglevel to DEBUG")
+@click.option("-i", "--info", required=False, is_flag=True, help="set loglevel to INFO")
+@click.option("-z", "--zip-file", required=True, help="zip file to register")
+def zips(rucio_dataset, rucio_register_config, chunk_size, debug, info, zip_file):
+    _set_log_level(debug, info)
+
+    ri, butler = _getRucioInterface(None, rucio_register_config, DataType.ZIP_FILE)
+
+    _register_zips(ri, [zip_file], chunk_size, rucio_dataset)

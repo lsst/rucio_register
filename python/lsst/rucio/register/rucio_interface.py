@@ -78,7 +78,7 @@ class RucioInterface:
         self.did_client = DIDClient()
         self.rubin_butler_type = rubin_butler_type
 
-    def _make_bundle(self, dataset_id, dataset_ref) -> ResourceBundle:
+    def _make_dataset_ref_bundle(self, dataset_id, dataset_ref) -> ResourceBundle:
         """Make a ResourceBundle
 
         Parameters
@@ -93,7 +93,21 @@ class RucioInterface:
         rb = ResourceBundle(dataset_id=dataset_id, did=did)
         return rb
 
-    def _make_did(self, resource_path, metadata: str) -> RucioDID:
+    def _make_zip_bundle(self, dataset_id, resource_path) -> ResourceBundle:
+        """Make a ResourceBundle
+
+        Parameters
+        ----------
+        dataset_id: `str`
+            Rucio dataset name
+        resouce_path: `ResourcePath`
+            ResourcePath to a file
+        """
+        did = self._make_did(resource_path)
+        rb = ResourceBundle(dataset_id=dataset_id, did=did)
+        return rb
+
+    def _make_did(self, resource_path, metadata: str = None) -> RucioDID:
         """Make a Rucio data identifier dictionary from a resource.
 
         Parameters
@@ -122,7 +136,10 @@ class RucioInterface:
         logging.debug(f"{name=}")
         logging.debug(f"{path=}")
 
-        meta = RubinMeta(rubin_butler=self.rubin_butler_type, rubin_sidecar=metadata)
+        if metadata:
+            meta = RubinMeta(rubin_butler=self.rubin_butler_type, rubin_sidecar=metadata)
+        else:
+            meta = RubinMeta(rubin_butler=self.rubin_butler_type, rubin_sidecar="")
         d = RucioDID(
             pfn=pfn,
             bytes=size,
@@ -170,7 +187,8 @@ class RucioInterface:
                 )
                 break
             except rucio.common.exception.FileAlreadyExists:
-                logger.debug(f"file {did} already registered in dataset {dataset_id}")
+                if 'pfn' in did:
+                    logger.debug(f"file {did['pfn']} already registered in dataset {dataset_id}")
                 return  # we can return, because it's already in the dataset
             except rucio.common.exception.RucioException:
                 retries += 1
@@ -271,7 +289,8 @@ class RucioInterface:
         for dataset_id, bundles in datasets.items():
             try:
                 dids = [rb.get_did() for rb in bundles]
-                logger.info("Registering %s in dataset %s, RSE %s", dids, dataset_id, self.rse)
+                names = [did['pfn'] for did in dids]
+                logger.info("Registering %s in dataset %s, RSE %s", names, dataset_id, self.rse)
                 self._add_files_to_dataset(dataset_id, dids)
             except rucio.common.exception.DataIdentifierNotFound:
                 # No such dataset, so create it
@@ -305,11 +324,28 @@ class RucioInterface:
                 for dsr in dataset_ref:
                     logging.debug(f"{self.butler.getURI(dsr)=}")
                     logging.debug(f"{dsr.to_json()=}")
-                    bundles.append(self._make_bundle(dataset_id, dsr))
+                    bundles.append(self._make_dataset_ref_bundle(dataset_id, dsr))
             else:
-                bundles.append(self._make_bundle(dataset_id, dataset_ref))
+                bundles.append(self._make_dataset_ref_bundle(dataset_id, dataset_ref))
         if len(bundles) == 0:
             return 0
+        self._add_replicas(bundles)
+        self.register_to_dataset(bundles)
+        return len(bundles)
+
+    def register_zips(self, dataset_id, zip_files) -> None:
+        """Register a list of zips to a Rucio Dataset
+
+        Parameters
+        ----------
+        dataset_id: `str`
+            RUCIO dataset id
+        zip_files: `list[ResourcePath]`
+            list of ResourcePath
+        """
+        bundles = []
+        for zip_file in zip_files:
+                bundles.append(self._make_zip_bundle(dataset_id, zip_file))
         self._add_replicas(bundles)
         self.register_to_dataset(bundles)
         return len(bundles)
