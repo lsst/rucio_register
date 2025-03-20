@@ -93,12 +93,14 @@ def _register(ri, dataset_refs, chunk_size, rucio_dataset):
         cnt = ri.register_as_replicas(rucio_dataset, refs)
         logger.debug(f"{cnt} butler datasets registered")
 
+
 def _register_zips(ri, zip_files, chunk_size, rucio_dataset):
     # register dataset_refs with Rucio into the rucio dataset, in chunks
     for zip_file in zip_files:
         rp = ResourcePath(zip_file)
         cnt = ri.register_zips(rucio_dataset, [rp])
         logger.debug(f"{cnt} zips registered")
+
 
 def _set_log_level(debug, info):
     if debug:
@@ -135,8 +137,7 @@ def main():
 )
 @main.command()
 def data_products(
-    repo, collections, dataset_type, rucio_dataset,
-    rucio_register_config, debug, info, chunk_size
+    repo, collections, dataset_type, rucio_dataset, rucio_register_config, debug, info, chunk_size
 ):
     _set_log_level(debug, info)
 
@@ -192,6 +193,7 @@ def raws(**kwargs: Any) -> None:
     dataset_refs = itertools.chain.from_iterable(QueryDatasets(**kwargs).getDatasets())
 
     _register(ri, dataset_refs, chunk_size, rucio_dataset)
+
 
 @main.command()
 @click.option("-d", "--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")

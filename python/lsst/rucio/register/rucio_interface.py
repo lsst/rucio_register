@@ -187,7 +187,7 @@ class RucioInterface:
                 )
                 break
             except rucio.common.exception.FileAlreadyExists:
-                if 'pfn' in did:
+                if "pfn" in did:
                     logger.debug(f"file {did['pfn']} already registered in dataset {dataset_id}")
                 return  # we can return, because it's already in the dataset
             except rucio.common.exception.RucioException:
@@ -289,7 +289,7 @@ class RucioInterface:
         for dataset_id, bundles in datasets.items():
             try:
                 dids = [rb.get_did() for rb in bundles]
-                names = [did['pfn'] for did in dids]
+                names = [did["pfn"] for did in dids]
                 logger.info("Registering %s in dataset %s, RSE %s", names, dataset_id, self.rse)
                 self._add_files_to_dataset(dataset_id, dids)
             except rucio.common.exception.DataIdentifierNotFound:
@@ -345,7 +345,7 @@ class RucioInterface:
         """
         bundles = []
         for zip_file in zip_files:
-                bundles.append(self._make_zip_bundle(dataset_id, zip_file))
+            bundles.append(self._make_zip_bundle(dataset_id, zip_file))
         self._add_replicas(bundles)
         self.register_to_dataset(bundles)
         return len(bundles)
