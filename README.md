@@ -41,6 +41,12 @@ The resulting datasets' files are registered with Rucio, as specified in
 the "config.yaml" file.  Additionally, those files are registered with the
 Rucio dataset specified by the "rucio-dataset" argument.
 
+for zip files:
+```
+rucio-register zips -d rubin_dataset -C /home/lsst/rucio_register/examples/register_config.yaml --zip-file file:///rucio/disks/xrd1/rucio/test/something/2c8f9e54-9757-54c0-9119-4c3ac812a2da.zip
+```
+Note for zip files, register a single zip file at a time.
+
 
 ## config.yaml
 
