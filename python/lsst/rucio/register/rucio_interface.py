@@ -200,7 +200,7 @@ class RucioInterface:
                 break
             except rucio.common.exception.FileAlreadyExists:
                 if "pfn" in did:
-                    logger.debug("file %s already registered in dataset %s", did['pfn'], dataset_id)
+                    logger.debug("file %s already registered in dataset %s", did["pfn"], dataset_id)
                 return  # we can return, because it's already in the dataset
             except rucio.common.exception.RucioException:
                 retries += 1

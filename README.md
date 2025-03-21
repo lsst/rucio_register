@@ -23,12 +23,12 @@ The command can register data-products or raws:
 
 for data products:
 ```
-rucio-register data-products -r /rucio/disks/xrd1/rucio/test -c HSC/runs/RC2/w_2023_32/DM-40356/20230814T170253Z -t visitSummary -d rubin_dataset -C register_config.yaml
+rucio-register data-products --log-level INFO -r /rucio/disks/xrd1/rucio/test -c HSC/runs/RC2/w_2023_32/DM-40356/20230814T170253Z -t visitSummary -d rubin_dataset -C register_config.yaml
 ```
 
 for raws:
 ```
-rucio-register raws -r /rucio/disks/xrd1/rucio/test -d rubin_dataset --collections LATISS/raw/all -C register_config.yaml \*
+rucio-register raws --log-level INFO -r /rucio/disks/xrd1/rucio/test -d rubin_dataset --collections LATISS/raw/all -C register_config.yaml \*
 ```
 Note that for raws, this is similar to how one uses the butler command
 
@@ -43,9 +43,10 @@ Rucio dataset specified by the "rucio-dataset" argument.
 
 for zip files:
 ```
-rucio-register zips -d rubin_dataset -C /home/lsst/rucio_register/examples/register_config.yaml --zip-file file:///rucio/disks/xrd1/rucio/test/something/2c8f9e54-9757-54c0-9119-4c3ac812a2da.zip
+rucio-register zips -d rubin_dataset --log-level INFO -C /home/lsst/rucio_register/examples/register_config.yaml --zip-file file:///rucio/disks/xrd1/rucio/test/something/2c8f9e54-9757-54c0-9119-4c3ac812a2da.zip
 ```
 Note for zip files, register a single zip file at a time.
+
 
 
 ## config.yaml

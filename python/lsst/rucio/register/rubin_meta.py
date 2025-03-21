@@ -35,5 +35,6 @@ class RubinMeta(pydantic.BaseModel):
     rubin_sidecar : `str`
         miscellaneous data associated with this rubin butler type
     """
+
     rubin_butler: str
     rubin_sidecar: str | None = ""
