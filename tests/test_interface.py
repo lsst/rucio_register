@@ -96,7 +96,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         cnt = self.ri.register_as_replicas("mydataset", [ref])
         self.assertEqual(cnt, 1)
 
-        rb = self.ri._make_bundle("mydataset", ref)
+        rb = self.ri._make_dataset_ref_bundle("mydataset", ref)
         self.assertEqual(rb.dataset_id, "mydataset")
 
         did = rb.did.model_dump()

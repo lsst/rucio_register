@@ -30,6 +30,8 @@ from rucio.client.didclient import DIDClient
 from rucio.client.replicaclient import ReplicaClient
 
 import lsst.daf.butler
+from lsst.daf.butler import DatasetRef
+from lsst.resources import ResourcePath
 from lsst.rucio.register.resource_bundle import ResourceBundle
 from lsst.rucio.register.rubin_meta import RubinMeta
 from lsst.rucio.register.rucio_did import RucioDID
@@ -45,15 +47,15 @@ class RucioInterface:
 
     Parameters
     ----------
-    butler: `lsst.daf.butler.Butler`
+    butler : `lsst.daf.butler.Butler`
         Butler we're operating upon
-    rucio_rse: `str`
+    rucio_rse : `str`
         Name of the RSE that the files live in.
-    scope: `str`
+    scope : `str`
         Rucio scope to register the files in.
-    rse_root: `str`
+    rse_root : `str`
         Full path to root directory of RSE directory structure
-    dtn_url: `str`
+    dtn_url : `str`
         Base URL of the data transfer node for the Rucio physical filename.
     rubin_butler_type: `str`
         the type registered in "rubin_butler" metadata for rucio
@@ -78,22 +80,46 @@ class RucioInterface:
         self.did_client = DIDClient()
         self.rubin_butler_type = rubin_butler_type
 
-    def _make_bundle(self, dataset_id, dataset_ref) -> ResourceBundle:
+    def _make_dataset_ref_bundle(self, dataset_id: str, dataset_ref: DatasetRef) -> ResourceBundle:
         """Make a ResourceBundle
 
         Parameters
         ----------
-        dataset_id: `str`
+        dataset_id : `str`
             Rucio dataset name
-        dataset_ref: `DatasetRef`
+        dataset_ref : `DatasetRef`
             Butler DatasetRef
+
+        Returns
+        -------
+        rb : `ResourceBundle`
+            ResourceBundle consolidating dataset id and DatasetRef
         """
-        logging.debug(f"{dataset_ref.to_json()}")
+        logging.debug("%s", dataset_ref.to_json())
         did = self._make_did(self.butler.getURI(dataset_ref), dataset_ref.to_json())
         rb = ResourceBundle(dataset_id=dataset_id, did=did)
         return rb
 
-    def _make_did(self, resource_path, metadata: str) -> RucioDID:
+    def _make_zip_bundle(self, dataset_id: str, resource_path: ResourcePath) -> ResourceBundle:
+        """Make a ResourceBundle
+
+        Parameters
+        ----------
+        dataset_id : `str`
+            Rucio dataset name
+        resouce_path : `ResourcePath`
+            ResourcePath to a file
+
+        Returns
+        -------
+        rb: ResourceBundle
+            ResourceBundle consolidating dataset id and ResourcePath
+        """
+        did = self._make_did(resource_path)
+        rb = ResourceBundle(dataset_id=dataset_id, did=did)
+        return rb
+
+    def _make_did(self, resource_path: ResourcePath, metadata: str = None) -> RucioDID:
         """Make a Rucio data identifier dictionary from a resource.
 
         Parameters
@@ -106,7 +132,7 @@ class RucioInterface:
 
         Returns
         -------
-        did: `dict [ str, str|int ]`
+        did : `dict` [`str`, `str`|`int`]
             Rucio data identifier including physical and logical names,
             byte length, adler32 and MD5 checksums, meta, and scope.
         """
@@ -117,12 +143,15 @@ class RucioInterface:
             adler32 = f"{zlib.adler32(contents):08x}"
         path = resource_path.unquoted_path.removeprefix(self.rse_root)
         pfn = self.pfn_base + path
-        logging.debug(f"{pfn=}")
+        logging.debug("pfn=%s", pfn)
         name = path.removeprefix("/" + self.scope + "/")
-        logging.debug(f"{name=}")
-        logging.debug(f"{path=}")
+        logging.debug("name=%s", name)
+        logging.debug("path=%s", path)
 
-        meta = RubinMeta(rubin_butler=self.rubin_butler_type, rubin_sidecar=metadata)
+        if metadata:
+            meta = RubinMeta(rubin_butler=self.rubin_butler_type, rubin_sidecar=metadata)
+        else:
+            meta = RubinMeta(rubin_butler=self.rubin_butler_type, rubin_sidecar="")
         d = RucioDID(
             pfn=pfn,
             bytes=size,
@@ -140,7 +169,7 @@ class RucioInterface:
 
         Parameters
         ----------
-        bundles: `list[ResourceBundle]`
+        bundles : `list` [`ResourceBundle`]
             A list of ResourceBundles
         """
         dids = [bundle.get_did() for bundle in bundles]
@@ -154,7 +183,7 @@ class RucioInterface:
                 retries += 1
                 if retries < max_retries:
                     seconds = random.randint(10, 20)
-                    logger.debug(f"failed to add_replicas; sleeping {seconds} seconds")
+                    logger.debug("failed to add_replicas; sleeping %d seconds", seconds)
                     time.sleep(seconds)
                     self.replica_client = ReplicaClient()  # XXX not sure we need to do this.
                 else:
@@ -170,13 +199,14 @@ class RucioInterface:
                 )
                 break
             except rucio.common.exception.FileAlreadyExists:
-                logger.debug(f"file {did} already registered in dataset {dataset_id}")
+                if "pfn" in did:
+                    logger.debug("file %s already registered in dataset %s", did["pfn"], dataset_id)
                 return  # we can return, because it's already in the dataset
             except rucio.common.exception.RucioException:
                 retries += 1
                 if retries < max_retries:
                     seconds = random.randint(10, 20)
-                    logger.debug(f"failed to register one did to {dataset_id}; sleeping {seconds}")
+                    logger.debug("failed to register one did to %s; sleeping %d seconds", dataset_id, seconds)
                     time.sleep(seconds)
                     self.did_client = DIDClient()  # XXX not sure we need to do this.
                 else:
@@ -190,9 +220,9 @@ class RucioInterface:
 
         Parameters
         ----------
-        dataset_id: `str`
+        dataset_id : `str`
             Logical name of the Rucio dataset.
-        dids: `list [ dict [ str, str|int ] ]`
+        dids : `list` [`dict` [`str`, `str`|`int`] ]
             List of Rucio data identifiers.
         """
         retries = 0
@@ -222,7 +252,7 @@ class RucioInterface:
                 retries += 1
                 if retries < max_retries:
                     seconds = random.randint(10, 20)
-                    logger.debug(f"failed to register dids to {dataset_id}; sleeping {seconds}")
+                    logger.debug("failed to register dids to %s; sleeping %d", dataset_id, seconds)
                     time.sleep(seconds)
                     continue
                 else:
@@ -247,7 +277,7 @@ class RucioInterface:
                 retries += 1
                 if retries < max_retries:
                     seconds = random.randint(10, 20)
-                    logger.debug(f"couldn't register dids to {dataset_id}; waiting {seconds}")
+                    logger.debug("couldn't register dids to %s; waiting %d", dataset_id, seconds)
                     time.sleep(seconds)
                     continue
                 else:
@@ -258,7 +288,7 @@ class RucioInterface:
 
         Parameters
         ----------
-        Bundles: `list [ ResourceBundle ]`
+        bundles : `list` [`ResourceBundle`]
             List of resource bundles
         """
         logger.debug("register to dataset")
@@ -271,7 +301,8 @@ class RucioInterface:
         for dataset_id, bundles in datasets.items():
             try:
                 dids = [rb.get_did() for rb in bundles]
-                logger.info("Registering %s in dataset %s, RSE %s", dids, dataset_id, self.rse)
+                names = [did["pfn"] for did in dids]
+                logger.info("Registering %s in dataset %s, RSE %s", names, dataset_id, self.rse)
                 self._add_files_to_dataset(dataset_id, dids)
             except rucio.common.exception.DataIdentifierNotFound:
                 # No such dataset, so create it
@@ -294,22 +325,37 @@ class RucioInterface:
 
         Parameters
         ----------
-        dataset_id: `str`
+        dataset_id : `str`
             RUCIO dataset id
-        dataset_refs: `list[DatasetRef]`
+        dataset_refs : `list` [`DatasetRef`]
             list of Butler DatasetRefs
         """
         bundles = []
         for dataset_ref in dataset_refs:
             if type(dataset_ref) is list:
                 for dsr in dataset_ref:
-                    logging.debug(f"{self.butler.getURI(dsr)=}")
-                    logging.debug(f"{dsr.to_json()=}")
-                    bundles.append(self._make_bundle(dataset_id, dsr))
+                    bundles.append(self._make_dataset_ref_bundle(dataset_id, dsr))
             else:
-                bundles.append(self._make_bundle(dataset_id, dataset_ref))
+                bundles.append(self._make_dataset_ref_bundle(dataset_id, dataset_ref))
         if len(bundles) == 0:
             return 0
+        self._add_replicas(bundles)
+        self.register_to_dataset(bundles)
+        return len(bundles)
+
+    def register_zips(self, dataset_id, zip_files) -> int:
+        """Register a list of zips to a Rucio Dataset
+
+        Parameters
+        ----------
+        dataset_id : `str`
+            RUCIO dataset id
+        zip_files : `list` [`ResourcePath`]
+            list of ResourcePath
+        """
+        bundles = []
+        for zip_file in zip_files:
+            bundles.append(self._make_zip_bundle(dataset_id, zip_file))
         self._add_replicas(bundles)
         self.register_to_dataset(bundles)
         return len(bundles)

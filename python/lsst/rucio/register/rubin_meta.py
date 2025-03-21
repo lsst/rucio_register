@@ -19,11 +19,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import pydantic
-
 __all__ = ["RubinMeta"]
 
 
+import pydantic
+
+
 class RubinMeta(pydantic.BaseModel):
+    """Metadata added specifically for Rubin Butler data
+
+    Parameters
+    ----------
+    rubin_butler : `str`
+        type of rubin butler object
+    rubin_sidecar : `str`
+        miscellaneous data associated with this rubin butler type
+    """
+
     rubin_butler: str
-    rubin_sidecar: str
+    rubin_sidecar: str | None = ""
