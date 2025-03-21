@@ -28,7 +28,7 @@ rucio-register data-products -r /rucio/disks/xrd1/rucio/test -c HSC/runs/RC2/w_2
 
 for raws:
 ```
-rucio-register raws -r /rucio/disks/xrd1/rucio/test -d rubin_dataset --collections LATISS/raw/all -C register_config.yaml
+rucio-register raws -r /rucio/disks/xrd1/rucio/test -d rubin_dataset --collections LATISS/raw/all -C register_config.yaml \*
 ```
 Note that for raws, this is similar to how one uses the butler command
 
