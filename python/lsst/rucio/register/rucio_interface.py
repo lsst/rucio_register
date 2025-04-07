@@ -119,6 +119,25 @@ class RucioInterface:
         rb = ResourceBundle(dataset_id=dataset_id, did=did)
         return rb
 
+    def _make_dim_bundle(self, dataset_id: str, resource_path: ResourcePath) -> ResourceBundle:
+        """Make a ResourceBundle
+
+        Parameters
+        ----------
+        dataset_id : `str`
+            Rucio dataset name
+        resouce_path : `ResourcePath`
+            ResourcePath to a file
+
+        Returns
+        -------
+        rb: ResourceBundle
+            ResourceBundle consolidating dataset id and ResourcePath
+        """
+        did = self._make_did(resource_path)
+        rb = ResourceBundle(dataset_id=dataset_id, did=did)
+        return rb
+
     def _make_did(self, resource_path: ResourcePath, metadata: str = None) -> RucioDID:
         """Make a Rucio data identifier dictionary from a resource.
 
@@ -356,6 +375,23 @@ class RucioInterface:
         bundles = []
         for zip_file in zip_files:
             bundles.append(self._make_zip_bundle(dataset_id, zip_file))
+        self._add_replicas(bundles)
+        self.register_to_dataset(bundles)
+        return len(bundles)
+
+    def register_dims(self, dataset_id, dim_files) -> int:
+        """Register a list of dimension files to a Rucio Dataset
+
+        Parameters
+        ----------
+        dataset_id : `str`
+            RUCIO dataset id
+        dim_files : `list` [`ResourcePath`]
+            list of ResourcePath
+        """
+        bundles = []
+        for dim_file in dim_files:
+            bundles.append(self._make_dim_bundle(dataset_id, dim_file))
         self._add_replicas(bundles)
         self.register_to_dataset(bundles)
         return len(bundles)

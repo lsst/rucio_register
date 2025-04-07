@@ -47,6 +47,12 @@ rucio-register zips -d rubin_dataset --log-level INFO -C /home/lsst/rucio_regist
 ```
 Note for zip files, register a single zip file at a time.
 
+for dimension record YAML files:
+```
+rucio-register dimensions -d rubin_dataset --log-level INFO -C /home/lsst/rucio_register/examples/register_config.yaml --dimension-file file:///rucio/disks/xrd1/rucio/test/something/dimensions.yaml
+```
+Note for zip files, register a single zip file at a time.
+
 
 
 ## config.yaml
