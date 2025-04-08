@@ -93,9 +93,8 @@ def _getRucioInterface(repo, rucio_register_config, rubin_butler_type):
 def _register(ri, dataset_refs, chunk_size, rucio_dataset):
     # register dataset_refs with Rucio into the rucio dataset, in chunks
     for refs in chunks(dataset_refs, chunk_size):
-        logger.debug(f"x: {chunk_size=}, {rucio_dataset=}, {refs=}")
         cnt = ri.register_as_replicas(rucio_dataset, refs)
-        logger.debug(f"{cnt} butler datasets registered")
+        logger.debug("%d butler datasets registered", cnt)
 
 
 def _register_zips(ri, zip_files, chunk_size, rucio_dataset):
@@ -103,7 +102,15 @@ def _register_zips(ri, zip_files, chunk_size, rucio_dataset):
     for zip_file in zip_files:
         rp = ResourcePath(zip_file)
         cnt = ri.register_zips(rucio_dataset, [rp])
-        logger.debug(f"{cnt} zips registered")
+        logger.debug("%d zips registered", cnt)
+
+
+def _register_dims(ri, dim_files, chunk_size, rucio_dataset):
+    # register dataset_refs with Rucio into the rucio dataset, in chunks
+    for dim_file in dim_files:
+        rp = ResourcePath(dim_file)
+        cnt = ri.register_dims(rucio_dataset, [rp])
+        logger.debug("%d dimension files registered", cnt)
 
 
 def _set_log_level(log_level):
@@ -216,3 +223,26 @@ def zips(rucio_dataset, rucio_register_config, chunk_size, zip_file, log_level):
     ri, butler = _getRucioInterface(None, rucio_register_config, DataType.ZIP_FILE)
 
     _register_zips(ri, [zip_file], chunk_size, rucio_dataset)
+
+
+@main.command()
+@click.option("-d", "--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
+@click.option(
+    "-C", "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
+)
+@click.option(
+    "-s",
+    "--chunk-size",
+    required=False,
+    type=int,
+    default=30,
+    help="number of replica requests to make at once",
+)
+@click.option("-D", "--dimension-file", required=True, help="dimension file to register")
+@log_level_option()
+def dimensions(rucio_dataset, rucio_register_config, chunk_size, dimension_file, log_level):
+    _set_log_level(log_level)
+
+    ri, butler = _getRucioInterface(None, rucio_register_config, DataType.DIM_FILE)
+
+    _register_dims(ri, [dimension_file], chunk_size, rucio_dataset)
