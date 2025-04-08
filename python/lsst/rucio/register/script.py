@@ -225,6 +225,7 @@ def zips(rucio_dataset, rucio_register_config, chunk_size, zip_file, log_level):
 
     _register_zips(ri, [zip_file], chunk_size, rucio_dataset)
 
+
 @main.command()
 @click.option("-d", "--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
 @click.option(
