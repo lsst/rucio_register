@@ -1,7 +1,7 @@
-# rucio_register
+# rucio-register
 Command and API to add Butler specific information to Rucio metadata.
 
-This is a guide to using the rucio_register command for registering
+This is a guide to using the rucio-register command for registering
 Butler files with Rucio.
 
 Butler files are expected to be located in a Rucio directory structure,
@@ -62,3 +62,39 @@ scope: "main"
 rse_root: "/rucio/disks/xrd1/rucio"
 dtn_url: "root://xrd1:1094//rucio"
 ```
+
+
+# export-datasets
+Command and to dump Butler dataset, dimension, and calibration validity range data to a YAML file.
+
+This command works alongside "rucio-register".
+It can be used to record all the files registered into Rucio so that their transfer and ingestion at the destination can be confirmed.
+In addition, it preserves dimension data and calibration validity range data that is not otherwise transferred via Rucio.
+This additional data can be useful for repeated ingests of raw and calibration data into Butler repositories.
+
+## Examples
+
+To record the dimension values (notably _not_ including the visit dimension, which would have to be regenerated) for a set of raw images:
+
+```
+export-datasets \
+    --root /sdf/group/rubin/lsstdata/offline/instrument/ \
+    --filename Dataset-LSSTCam-NoTract-20250101-0000.yaml \
+    --collections LSSTCam/raw/all \
+    --where "instrument='LSSTCam' and day_obs=20250101 and exposure.seq_num IN (1..99)" \
+    --limit 30000 \
+    /repo/main raw
+```
+`--root` is needed here since the original files are ingested as full URLs with `direct`.
+
+To record the datasets created by a multi-site processing workflow:
+
+```
+export-datasets \
+    --filename Dataset-LSSTCam-Tract2024-Step3-Group5-metadata.yaml \
+    --collections step3/group5 \
+    --where "tract=2024" \
+    $LOCAL_REPO '*_metadata'
+```
+Note the use of a glob pattern to select dataset types of interest.
+
