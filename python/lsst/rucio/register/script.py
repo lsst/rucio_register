@@ -93,9 +93,8 @@ def _getRucioInterface(repo, rucio_register_config, rubin_butler_type):
 def _register(ri, dataset_refs, chunk_size, rucio_dataset):
     # register dataset_refs with Rucio into the rucio dataset, in chunks
     for refs in chunks(dataset_refs, chunk_size):
-        logger.debug(f"x: {chunk_size=}, {rucio_dataset=}, {refs=}")
         cnt = ri.register_as_replicas(rucio_dataset, refs)
-        logger.debug(f"{cnt} butler datasets registered")
+        logger.debug("%d butler datasets registered", cnt)
 
 
 def _register_zips(ri, zip_files, chunk_size, rucio_dataset):
@@ -103,7 +102,7 @@ def _register_zips(ri, zip_files, chunk_size, rucio_dataset):
     for zip_file in zip_files:
         rp = ResourcePath(zip_file)
         cnt = ri.register_zips(rucio_dataset, [rp])
-        logger.debug(f"{cnt} zips registered")
+        logger.debug("%d zips registered", cnt)
 
 
 def _register_dims(ri, dim_files, chunk_size, rucio_dataset):
@@ -111,7 +110,7 @@ def _register_dims(ri, dim_files, chunk_size, rucio_dataset):
     for dim_file in dim_files:
         rp = ResourcePath(dim_file)
         cnt = ri.register_dims(rucio_dataset, [rp])
-        logger.debug(f"{cnt} dimension files registered")
+        logger.debug("%d dimension files registered", cnt)
 
 
 def _set_log_level(log_level):

@@ -126,12 +126,12 @@ class RucioInterface:
         ----------
         dataset_id : `str`
             Rucio dataset name
-        resouce_path : `ResourcePath`
+        resouce_path : `lsst.resource.ResourcePath`
             ResourcePath to a file
 
         Returns
         -------
-        rb: ResourceBundle
+        rb: `lsst.rucio.register.rucio_bundle.ResourceBundle`
             ResourceBundle consolidating dataset id and ResourcePath
         """
         did = self._make_did(resource_path)
@@ -362,7 +362,7 @@ class RucioInterface:
         self.register_to_dataset(bundles)
         return len(bundles)
 
-    def register_zips(self, dataset_id, zip_files) -> int:
+    def register_zips(self, dataset_id: str, zip_files: list) -> int:
         """Register a list of zips to a Rucio Dataset
 
         Parameters
@@ -371,6 +371,11 @@ class RucioInterface:
             RUCIO dataset id
         zip_files : `list` [`ResourcePath`]
             list of ResourcePath
+
+        Returns
+        -------
+        num : `int`
+            number of zip files ingested
         """
         bundles = []
         for zip_file in zip_files:
@@ -379,15 +384,20 @@ class RucioInterface:
         self.register_to_dataset(bundles)
         return len(bundles)
 
-    def register_dims(self, dataset_id, dim_files) -> int:
+    def register_dims(self, dataset_id: str, dim_files: list) -> int:
         """Register a list of dimension files to a Rucio Dataset
 
         Parameters
         ----------
         dataset_id : `str`
             RUCIO dataset id
-        dim_files : `list` [`ResourcePath`]
+        dim_files : `list` [`lsst.resource.ResourcePath`]
             list of ResourcePath
+
+        Returns
+        -------
+        num : `int`
+            number of dimension files ingested
         """
         bundles = []
         for dim_file in dim_files:
