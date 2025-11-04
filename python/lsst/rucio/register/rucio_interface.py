@@ -138,6 +138,31 @@ class RucioInterface:
         rb = ResourceBundle(dataset_id=dataset_id, did=did)
         return rb
 
+    def compute_hashes(self, resource_path: ResourcePath) -> tuple[int, str, str]:
+        """Compute the length, MD5, and Adler32 hashes for a file.
+
+        Parameters
+        ----------
+        path: `str`
+            Path to the file.
+
+        Returns
+        -------
+        hashes: `tuple` [ `int`, `str`, `str` ]
+            Size in bytes, MD5 hex, and Adler32 hex hashes.
+        """
+        size = 0
+        md5 = hashlib.md5()
+        adler32 = zlib.adler32(b"")
+        with resource_path.open("rb") as f:
+            while buffer := f.read(10 * 1024 * 1024):
+                size += len(buffer)
+                md5.update(buffer)
+                adler32 = zlib.adler32(buffer, adler32)
+        md5_digest = md5.hexdigest()
+        adler32_digest = f"{adler32:08x}"
+        return (size, md5_digest, adler32_digest)
+
     def _make_did(self, resource_path: ResourcePath, metadata: str = None) -> RucioDID:
         """Make a Rucio data identifier dictionary from a resource.
 
@@ -155,11 +180,8 @@ class RucioInterface:
             Rucio data identifier including physical and logical names,
             byte length, adler32 and MD5 checksums, meta, and scope.
         """
-        with resource_path.open("rb") as f:
-            contents = f.read()
-            size = len(contents)
-            md5 = hashlib.md5(contents).hexdigest()
-            adler32 = f"{zlib.adler32(contents):08x}"
+
+        size, md5, adler32 = self.compute_hashes(resource_path)
         path = resource_path.unquoted_path.removeprefix(self.rse_root)
         pfn = self.pfn_base + path
         logging.debug("pfn=%s", pfn)
