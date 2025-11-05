@@ -143,7 +143,7 @@ class RucioInterface:
 
         Parameters
         ----------
-        path: `str`
+        path: `lsst.resources.ResourcePath`
             Path to the file.
 
         Returns
@@ -154,8 +154,9 @@ class RucioInterface:
         size = 0
         md5 = hashlib.md5()
         adler32 = zlib.adler32(b"")
+        buffer_size = 10 * 1024 * 1024
         with resource_path.open("rb") as f:
-            while buffer := f.read(10 * 1024 * 1024):
+            while buffer := f.read(buffer_size):
                 size += len(buffer)
                 md5.update(buffer)
                 adler32 = zlib.adler32(buffer, adler32)
