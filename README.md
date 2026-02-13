@@ -23,12 +23,12 @@ The command can register data-products or raws:
 
 for data products:
 ```
-rucio-register data-products --log-level INFO -r /rucio/disks/xrd1/rucio/test -c HSC/runs/RC2/w_2023_32/DM-40356/20230814T170253Z -t visitSummary -d rubin_dataset -C register_config.yaml
+rucio-register data-products --log-level INFO --repo /rucio/disks/xrd1/rucio/test --collections HSC/runs/RC2/w_2023_32/DM-40356/20230814T170253Z --dataset-type  visitSummary --rucio-dataset rubin_dataset --rucio-register-config register_config.yaml
 ```
 
 for raws:
 ```
-rucio-register raws --log-level INFO -r /rucio/disks/xrd1/rucio/test -d rubin_dataset --collections LATISS/raw/all -C register_config.yaml \*
+rucio-register raws --log-level INFO --repo /rucio/disks/xrd1/rucio/test --rucio-dataset rubin_dataset --collections LATISS/raw/all --rucio-register-config register_config.yaml \*
 ```
 Note that for raws, this is similar to how one uses the butler command
 
@@ -43,13 +43,13 @@ Rucio dataset specified by the "rucio-dataset" argument.
 
 for zip files:
 ```
-rucio-register zips -d rubin_dataset --log-level INFO -C /home/lsst/rucio_register/examples/register_config.yaml --zip-file file:///rucio/disks/xrd1/rucio/test/something/2c8f9e54-9757-54c0-9119-4c3ac812a2da.zip
+rucio-register zips --rucio-dataset rubin_dataset --log-level INFO --rucio-register-config /home/lsst/rucio_register/examples/register_config.yaml --zip-file file:///rucio/disks/xrd1/rucio/test/something/2c8f9e54-9757-54c0-9119-4c3ac812a2da.zip
 ```
 Note for zip files, register a single zip file at a time.
 
 for dimension record YAML files:
 ```
-rucio-register dimensions -d rubin_dataset --log-level INFO -C /home/lsst/rucio_register/examples/register_config.yaml --dimension-file file:///rucio/disks/xrd1/rucio/test/something/dimensions.yaml
+rucio-register dimensions --rucio-dataset rubin_dataset --log-level INFO --rucio-register-config /home/lsst/rucio_register/examples/register_config.yaml --dimension-file file:///rucio/disks/xrd1/rucio/test/something/dimensions.yaml
 ```
 Note for zip files, register a single zip file at a time.
 
