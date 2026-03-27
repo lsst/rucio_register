@@ -118,7 +118,7 @@ def _set_log_level(log_level):
         level = log_level[None]
         logging_num_level = getattr(logging, level.upper(), None)
     else:
-        logging_num_level = logging.WARNING
+        logging_num_level = logging.INFO
     logging.basicConfig(level=logging_num_level, format=(_FORMAT), datefmt="%Y-%m-%d %H:%M:%S")
 
 
