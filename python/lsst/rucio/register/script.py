@@ -118,43 +118,13 @@ def _set_log_level(log_level):
         level = log_level[None]
         logging_num_level = getattr(logging, level.upper(), None)
     else:
-        logging_num_level = logging.WARNING
+        logging_num_level = logging.INFO
     logging.basicConfig(level=logging_num_level, format=(_FORMAT), datefmt="%Y-%m-%d %H:%M:%S")
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 def main():
     pass
-
-
-@click.option("-r", "--repo", required=True, type=str, help="butler repository")
-@click.option("-c", "--collections", required=True, type=str, help="collections for lookup")
-@click.option("-t", "--dataset-type", required=True, type=str, help="dataset type for lookup")
-@click.option("-d", "--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
-@click.option(
-    "-C", "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
-)
-@click.option(
-    "-s",
-    "--chunk-size",
-    required=False,
-    type=int,
-    default=30,
-    help="number of replica requests to make at once",
-)
-@log_level_option()
-@main.command()
-def data_products(
-    repo, collections, dataset_type, rucio_dataset, rucio_register_config, chunk_size, log_level
-):
-    _set_log_level(log_level)
-
-    ri, butler = _getRucioInterface(repo, rucio_register_config, DataType.DATA_PRODUCT)
-
-    # query the butler for the datasets specified on the commmand line
-    dataset_refs = butler.registry.queryDatasets(dataset_type, collections=collections)
-
-    _register(ri, dataset_refs, chunk_size, rucio_dataset)
 
 
 def _get_and_delete(kwargs, key):
@@ -166,13 +136,62 @@ def _get_and_delete(kwargs, key):
 
 
 @main.command()
-@click.option("-r", "--repo", required=True, type=str, help="butler repository")
-@click.option("-d", "--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
+@click.option("--repo", required=True, type=str, help="butler repository")
+@click.option("--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
+@click.option("--rucio-register-config", required=False, type=str, help="registration configuration file")
 @click.option(
-    "-C", "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
+    "--chunk-size",
+    required=False,
+    type=int,
+    default=30,
+    help="number of replica requests to make at once",
+)
+@log_level_option()
+@options_file_option()
+@query_datasets_options(repo=False, showUri=True, useArguments=False)
+def data_products(**kwargs: Any) -> None:
+    # get and delete from kwargs; QueryDatasets doesn't like extra args
+    log_level = kwargs.get("log_level", None)
+    _set_log_level(log_level)
+
+    rucio_register_config = kwargs.get("rucio_register_config", None)
+    rucio_dataset = kwargs.get("rucio_dataset", None)
+    chunk_size = kwargs.get("chunk_size", None)
+
+    repo = kwargs.get("repo", None)
+    collections = kwargs.get("collections", None)
+    where = kwargs.get("where", None)
+    find_first = kwargs.get("find_first", None)
+    limit = kwargs.get("limit", None)
+    order_by = kwargs.get("order_by", None)
+    dataset_type = kwargs.get("dataset_type", None)
+
+    ri, butler = _getRucioInterface(repo, rucio_register_config, DataType.DATA_PRODUCT)
+
+    query = QueryDatasets(
+        butler=butler,
+        glob=dataset_type,
+        collections=collections,
+        where=where,
+        find_first=find_first,
+        limit=limit,
+        order_by=order_by,
+        show_uri=False,
+        with_dimension_records=True,
+    )
+
+    dataset_refs = itertools.chain(*query.getDatasets())
+
+    _register(ri, dataset_refs, chunk_size, rucio_dataset)
+
+
+@main.command()
+@click.option("--repo", required=True, type=str, help="butler repository")
+@click.option("--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
+@click.option(
+    "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
 )
 @click.option(
-    "-s",
     "--chunk-size",
     required=False,
     type=int,
@@ -182,7 +201,6 @@ def _get_and_delete(kwargs, key):
 @log_level_option()
 @options_file_option()
 @query_datasets_options(repo=False, showUri=True)
-@log_level_option()
 def raws(**kwargs: Any) -> None:
     # get and delete from kwargs; QueryDatasets doesn't like extra args
     log_level = _get_and_delete(kwargs, "log_level")
@@ -203,19 +221,18 @@ def raws(**kwargs: Any) -> None:
 
 
 @main.command()
-@click.option("-d", "--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
+@click.option("--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
 @click.option(
-    "-C", "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
+    "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
 )
 @click.option(
-    "-s",
     "--chunk-size",
     required=False,
     type=int,
     default=30,
     help="number of replica requests to make at once",
 )
-@click.option("-z", "--zip-file", required=True, help="zip file to register")
+@click.option("--zip-file", required=True, help="zip file to register")
 @log_level_option()
 def zips(rucio_dataset, rucio_register_config, chunk_size, zip_file, log_level):
     _set_log_level(log_level)
@@ -226,19 +243,18 @@ def zips(rucio_dataset, rucio_register_config, chunk_size, zip_file, log_level):
 
 
 @main.command()
-@click.option("-d", "--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
+@click.option("--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
 @click.option(
-    "-C", "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
+    "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
 )
 @click.option(
-    "-s",
     "--chunk-size",
     required=False,
     type=int,
     default=30,
     help="number of replica requests to make at once",
 )
-@click.option("-D", "--dimension-file", required=True, help="dimension file to register")
+@click.option("--dimension-file", required=True, help="dimension file to register")
 @log_level_option()
 def dimensions(rucio_dataset, rucio_register_config, chunk_size, dimension_file, log_level):
     _set_log_level(log_level)
