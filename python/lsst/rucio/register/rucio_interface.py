@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import hashlib
 import logging
 import random
 import time
@@ -138,8 +137,8 @@ class RucioInterface:
         rb = ResourceBundle(dataset_id=dataset_id, did=did)
         return rb
 
-    def compute_hashes(self, resource_path: ResourcePath) -> tuple[int, str, str]:
-        """Compute the length, MD5, and Adler32 hashes for a file.
+    def compute_hashes(self, resource_path: ResourcePath) -> tuple[int, str]:
+        """return the length and adler32 hash for a file.
 
         Parameters
         ----------
@@ -148,21 +147,28 @@ class RucioInterface:
 
         Returns
         -------
-        hashes: `tuple` [ `int`, `str`, `str` ]
-            Size in bytes, MD5 hex, and Adler32 hex hashes.
+        hashes: `tuple` [ `int`, `str` ]
+            Size in bytes and Adler32 hex hash.
         """
-        size = 0
-        md5 = hashlib.md5()
+
+        info = resource_path.get_info()
+        size = info.size
+        checksums = info.checksums
+        if "adler32" in checksums:
+            adler32 = checksums["adler32"]
+            logger.info("found adler32 for %s", resource_path)
+            return size, adler32
+        return size, self._compute_adler32(resource_path)
+
+    def _compute_adler32(self, resource_path: ResourcePath) -> tuple[int, str]:
+        logger.info("computing adler32 for %s", resource_path)
         adler32 = zlib.adler32(b"")
         buffer_size = 10 * 1024 * 1024
         with resource_path.open("rb") as f:
             while buffer := f.read(buffer_size):
-                size += len(buffer)
-                md5.update(buffer)
                 adler32 = zlib.adler32(buffer, adler32)
-        md5_digest = md5.hexdigest()
         adler32_digest = f"{adler32:08x}"
-        return (size, md5_digest, adler32_digest)
+        return adler32_digest
 
     def _make_did(self, resource_path: ResourcePath, metadata: str = None) -> RucioDID:
         """Make a Rucio data identifier dictionary from a resource.
@@ -179,10 +185,10 @@ class RucioInterface:
         -------
         did : `dict` [`str`, `str`|`int`]
             Rucio data identifier including physical and logical names,
-            byte length, adler32 and MD5 checksums, meta, and scope.
+            byte length, adler32 checksum, meta, and scope.
         """
 
-        size, md5, adler32 = self.compute_hashes(resource_path)
+        size, adler32 = self.compute_hashes(resource_path)
         path = resource_path.unquoted_path.removeprefix(self.rse_root)
         pfn = self.pfn_base + path
         logging.debug("pfn=%s", pfn)
@@ -198,7 +204,6 @@ class RucioInterface:
             pfn=pfn,
             bytes=size,
             adler32=adler32,
-            md5=md5,
             name=name,
             scope=self.scope,
             meta=meta,

@@ -32,9 +32,7 @@ from lsst.rucio.register.rucio_did import RucioDID
 class ResourceBundleTestCase(unittest.TestCase):
     def testResourceBundle(self):
         meta = RubinMeta(rubin_butler=DataType.DATA_PRODUCT, rubin_sidecar="mysidecar")
-        did = RucioDID(
-            pfn="string1", bytes=451, adler32="32", md5="0x5", name="myname", scope="mouthwash", meta=meta
-        )
+        did = RucioDID(pfn="string1", bytes=451, adler32="32", name="myname", scope="mouthwash", meta=meta)
         rb = ResourceBundle(dataset_id="12", did=did)
 
         self.assertEqual(rb.dataset_id, "12")

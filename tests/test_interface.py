@@ -38,7 +38,8 @@ import lsst.utils.tests
 from lsst.daf.butler import Butler, DatasetRef, DimensionUniverse
 
 # from lsst.daf.butler.registry import DatasetTypeError, MissingCollectionError
-from lsst.resources import ResourcePath
+from lsst.resources import ResourceInfo, ResourcePath
+from lsst.resources.file import FileResourcePath
 from lsst.rucio.register.data_type import DataType
 from lsst.rucio.register.rucio_interface import RucioInterface
 
@@ -47,7 +48,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.butler_repo = tempfile.mkdtemp()
+        self.butler_repo = tempfile.mkdtemp(dir="/tmp")
         test_dir = os.path.abspath(os.path.dirname(__file__))
 
         self.dataset_ref_file = os.path.join(test_dir, "data", "dataset_ref.json")
@@ -63,7 +64,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         self.butler = Butler(self.butler_repo, writeable=True)
         self.butler.getURI = MagicMock(return_value=ResourcePath(f"file://{self.data_file}"))
 
-        self.rse_root = tempfile.mkdtemp()
+        self.rse_root = tempfile.mkdtemp(dir="/tmp")
 
         # patch __init__ methods
         self.rc_init = patch.object(ReplicaClient, "__init__", return_value=None)
@@ -82,6 +83,34 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         scope = "test"
         dtn_url = "root://xrd1:1094//rucio"
         self.ri = RucioInterface(self.butler, rucio_rse, scope, self.rse_root, dtn_url, DataType.DATA_PRODUCT)
+
+    def testChecksumsCase(self):
+        fake_info = MagicMock(spec=ResourceInfo)
+        fake_info.checksums = {"adler32": "abcd1234"}
+        fake_info.size = 1234
+        fake_info.is_file = True
+        fake_info.last_modified = None
+        fake_info.uri = f"file://{self.data_file}"
+
+        patcher = patch.object(FileResourcePath, "get_info", return_value=fake_info)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+        with open(self.dataset_ref_file) as f:
+            json_ref = f.readline()
+
+        ref = DatasetRef.from_json(json_ref, DimensionUniverse())
+
+        self.butler.registry.registerDatasetType(ref.datasetType)
+        cnt = self.ri.register_as_replicas("mydataset", [ref])
+        self.assertEqual(cnt, 1)
+
+        rb = self.ri._make_dataset_ref_bundle("mydataset", ref)
+        self.assertEqual(rb.dataset_id, "mydataset")
+
+        did = rb.did.model_dump()
+
+        self.assertEqual(did["adler32"], "abcd1234")
 
     def testInterfaceTestCase(self):
         dtn_url = "root://xrd1:1094//rucio"
@@ -103,7 +132,6 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(did["pfn"], f"{dtn_url}{self.data_file}")
         self.assertEqual(did["bytes"], 1365120)
         self.assertEqual(did["adler32"], "480be4de")
-        self.assertEqual(did["md5"], "a7ee5c19f5717bcf8d772de202864244")
         self.assertEqual(did["name"], self.data_file)
         self.assertEqual(did["scope"], "test")
 
