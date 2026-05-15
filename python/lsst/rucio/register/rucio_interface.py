@@ -211,6 +211,21 @@ class RucioInterface:
 
         return d
 
+    def _remove_duplicate_dids(self, dids: list[RucioDID]) -> list[RucioDID]:
+        """ Remove DIDs already known by Rucio """
+        known_dids = self.did_client.bulk_list_files(dids)
+        if len(known_dids) == 0:
+            return dids
+        else:
+            for i in range(len(dids)):
+                for j in range(len(known_dids)):
+                    if (dids[i]['scope'] == known_dids[j]['scope']
+                        and dids[i]['name'] == known_dids[j]['name']):
+                        dids.pop(i)
+                        known_dids.pop(j)
+                        break
+            return dids
+
     def _add_replicas(self, bundles: list[ResourceBundle]) -> None:
         """Call the Rucio method add_replica for a list of DIDs
 
@@ -220,6 +235,7 @@ class RucioInterface:
             A list of ResourceBundles
         """
         dids = [bundle.get_did() for bundle in bundles]
+        dids = self._remove_duplicate_dids(dids)
         retries = 0
         max_retries = 5
         while True:
