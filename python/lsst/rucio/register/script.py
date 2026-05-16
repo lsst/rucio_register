@@ -146,15 +146,6 @@ def _get_and_delete(kwargs, key):
     default=30,
     help="number of replica requests to make at once",
 )
-@click.option(
-    "--uuidlist",
-    required=False,
-    type=str,
-    help="""
-         filename of a list of butler dataset UUIDs to be register to the Rucio dataset. When
-         this option is used, others usual butler dataset selection options will be ignored
-         """
-)
 @log_level_option()
 @options_file_option()
 @query_datasets_options(repo=False, showUri=True, useArguments=False)
@@ -166,7 +157,6 @@ def data_products(**kwargs: Any) -> None:
     rucio_register_config = kwargs.get("rucio_register_config", None)
     rucio_dataset = kwargs.get("rucio_dataset", None)
     chunk_size = kwargs.get("chunk_size", None)
-    uuidlist = kwargs.get("uuidlist", None)
 
     repo = kwargs.get("repo", None)
     collections = kwargs.get("collections", None)
@@ -178,28 +168,65 @@ def data_products(**kwargs: Any) -> None:
 
     ri, butler = _getRucioInterface(repo, rucio_register_config, DataType.DATA_PRODUCT)
 
-    if not uuidlist:
-        query = QueryDatasets(
-            butler=butler,
-            glob=dataset_type,
-            collections=collections,
-            where=where,
-            find_first=find_first,
-            limit=limit,
-            order_by=order_by,
-            show_uri=False,
-            with_dimension_records=True,
-        )
+    query = QueryDatasets(
+        butler=butler,
+        glob=dataset_type,
+        collections=collections,
+        where=where,
+        find_first=find_first,
+        limit=limit,
+        order_by=order_by,
+        show_uri=False,
+        with_dimension_records=True,
+    )
 
-        dataset_refs = itertools.chain(*query.getDatasets())
-    else:
-        uuids = []
-        with open(uuidlist) as f:
-            for line in f:
-                if not line.lstrip().strip().startswith("#"):
-                    uuids.append(line)
+    dataset_refs = itertools.chain(*query.getDatasets())
 
-        dataset_refs = butler.get_many_datasets(uuids)
+    _register(ri, dataset_refs, chunk_size, rucio_dataset)
+
+
+@main.command()
+@click.option("--repo", required=True, type=str, help="butler repository")
+@click.option("--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
+@click.option("--rucio-register-config", required=False, type=str, help="registration configuration file")
+@click.option(
+    "--chunk-size",
+    required=False,
+    type=int,
+    default=30,
+    help="number of replica requests to make at once",
+)
+@click.option(
+    "--uuidlist",
+    required=False,
+    type=str,
+    help="""
+         filename of a list of butler dataset UUIDs to be register to the rucio dataset.
+         """
+)
+@log_level_option()
+@options_file_option()
+def dataset_list(**kwargs: Any) -> None:
+    # get and delete from kwargs
+    log_level = kwargs.get("log_level", None)
+    _set_log_level(log_level)
+
+    rucio_register_config = kwargs.get("rucio_register_config", None)
+    rucio_dataset = kwargs.get("rucio_dataset", None)
+    chunk_size = kwargs.get("chunk_size", None)
+    uuidlist = kwargs.get("uuidlist", None)
+
+    repo = kwargs.get("repo", None)
+
+    ri, butler = _getRucioInterface(repo, rucio_register_config, DataType.DATA_PRODUCT)
+
+    uuids = []
+    with open(uuidlist) as f:
+        for line in f:
+            if not line.lstrip().startswith("#"):
+                uuids.append(line.strip())
+
+    dataset_refs = butler.get_many_datasets(uuids)
 
     _register(ri, dataset_refs, chunk_size, rucio_dataset)
 
