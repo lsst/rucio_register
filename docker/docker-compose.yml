@@ -1,5 +1,3 @@
-version: "3.7"
-
 services:
   test-register:
     container_name: test-register

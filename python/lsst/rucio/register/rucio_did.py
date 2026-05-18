@@ -30,7 +30,6 @@ class RucioDID(pydantic.BaseModel):
     pfn: str
     bytes: int
     adler32: str
-    md5: str
     name: str
     scope: str
     meta: RubinMeta
