@@ -156,12 +156,12 @@ class RucioInterface:
         checksums = info.checksums
         if "adler32" in checksums:
             adler32 = checksums["adler32"]
-            logger.info("found adler32 for %s", resource_path)
+            logger.debug("found adler32 for %s", resource_path)
             return size, adler32
         return size, self._compute_adler32(resource_path)
 
     def _compute_adler32(self, resource_path: ResourcePath) -> tuple[int, str]:
-        logger.info("computing adler32 for %s", resource_path)
+        logger.debug("computing adler32 for %s", resource_path)
         adler32 = zlib.adler32(b"")
         buffer_size = 10 * 1024 * 1024
         with resource_path.open("rb") as f:
