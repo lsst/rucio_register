@@ -202,7 +202,7 @@ def data_products(**kwargs: Any) -> None:
     type=str,
     help="""
          filename of a list of butler dataset UUIDs to be register to the rucio dataset.
-         """
+         """,
 )
 @log_level_option()
 @options_file_option()
