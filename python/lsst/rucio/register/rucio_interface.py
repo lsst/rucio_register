@@ -236,30 +236,6 @@ class RucioInterface:
                 else:
                     raise Exception(f"Tried {max_retries} times and couldn't add_replicas")
 
-    def _add_file_to_dataset_with_retries(self, dataset_id, did):
-        retries = 0
-        max_retries = 5
-        while True:
-            try:
-                self.did_client.add_files_to_dataset(
-                    scope=self.scope, name=dataset_id, files=[did], rse=self.rse
-                )
-                break
-            except rucio.common.exception.FileAlreadyExists:
-                if "pfn" in did:
-                    logger.debug("file %s already registered in dataset %s", did["pfn"], dataset_id)
-                return  # we can return, because it's already in the dataset
-            except rucio.common.exception.RucioException:
-                retries += 1
-                if retries < max_retries:
-                    seconds = random.randint(10, 20)
-                    logger.debug("failed to register one did to %s; sleeping %d seconds", dataset_id, seconds)
-                    time.sleep(seconds)
-                    self.did_client = DIDClient()  # XXX not sure we need to do this.
-                else:
-                    # we tried max_retries times, and failed, so we'll bail out
-                    raise Exception(f"Couldn't add {did['pfn']} to dataset {dataset_id}")
-
     def _add_files_to_dataset(self, dataset_id: str, dids: list[dict]) -> None:
         """Attach a list of files specified by Rucio DIDs to a Rucio dataset.
 
@@ -276,22 +252,17 @@ class RucioInterface:
         max_retries = 5
         while True:
             try:
-                self.did_client.add_files_to_dataset(
-                    scope=self.scope,
-                    name=dataset_id,
-                    files=dids,
-                    rse=self.rse,
+                self.did_client.add_files_to_datasets(
+                    attachments=[
+                        {
+                            "scope": self.scope,
+                            "name": dataset_id,
+                            "dids": dids,
+                            "rse": self.rse,
+                        }
+                    ],
+                    ignore_duplicate=True,
                 )
-                return
-            except rucio.common.exception.FileAlreadyExists:
-                # At least one already is in the dataset.
-                # This shouldn't happen, but if it does,
-                # we have to retry each individually.
-                for did in dids:
-                    self._add_file_to_dataset_with_retries(
-                        dataset_id=dataset_id,
-                        did=did,
-                    )
                 return
             except rucio.common.exception.DataIdentifierNotFound as e:
                 raise e

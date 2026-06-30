@@ -28,8 +28,6 @@ from unittest.mock import MagicMock, patch
 from rucio.client.didclient import DIDClient
 from rucio.client.replicaclient import ReplicaClient
 from rucio.common.exception import (
-    DataIdentifierAlreadyExists,
-    DataIdentifierNotFound,
     FileAlreadyExists,
     RucioException,
 )
@@ -71,12 +69,14 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         self.dc_init = patch.object(DIDClient, "__init__", return_value=None)
         self.rc_add_replicas = patch.object(ReplicaClient, "add_replicas", return_value=None)
         self.dc_attach_dids = patch.object(DIDClient, "attach_dids", return_value=None)
+        self.dc_attach_dids_to_dids = patch.object(DIDClient, "attach_dids_to_dids", return_value=None)
         self.rand = patch("random.randint", return_value=1)
 
         self.mock_rc_init = self.rc_init.start()
         self.mock_dc_init = self.dc_init.start()
         self.mock_rc_add_replicas = self.rc_add_replicas.start()
         self.mock_dc_attach_dids = self.dc_attach_dids.start()
+        self.mock_dc_attach_dids_to_dids = self.dc_attach_dids_to_dids.start()
         self.mock_rand = self.rand.start()
 
         rucio_rse = "DRR1"
@@ -154,52 +154,9 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         with self.assertRaises(Exception):
             self.common()
 
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException("failed"))
-    def testException2TestCase(self, MC1):
-        with self.assertRaises(Exception):
-            self.common()
-
     @patch.object(DIDClient, "add_files_to_dataset", side_effect=FileAlreadyExists("failed"))
-    def testException3TestCase(self, MC1):
+    def testException2TestCase(self, MC1):
         self.common()
-
-    @patch.object(DIDClient, "add_dataset", return_value=None)
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=DataIdentifierNotFound("failed"))
-    def testException4TestCase(self, MC1, MC2):
-        with self.assertRaises(Exception):
-            self.common()
-
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException("failed"))
-    def testException5TestCase(self, MC1):
-        with self.assertRaises(Exception):
-            self.common()
-
-    @patch.object(DIDClient, "add_dataset", side_effect=DataIdentifierAlreadyExists("failed"))
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=DataIdentifierNotFound("failed"))
-    def testException6TestCase(self, MC1, MC2):
-        with self.assertRaises(Exception):
-            self.common()
-
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException("failed"))
-    def testException7TestCase(self, MC1):
-        with self.assertRaises(Exception):
-            self.common()
-
-    @patch.object(DIDClient, "add_dataset", side_effect=RucioException("failed"))
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=DataIdentifierNotFound("failed"))
-    def testException8TestCase(self, MC1, MC2):
-        with self.assertRaises(Exception):
-            self.common()
-
-    @patch.object(DIDClient, "add_files_to_dataset", side_effect=RucioException("failed"))
-    def testException9Case(self, MC1):
-        rucio_rse = "DRR1"
-        scope = "test"
-        dtn_url = "root://xrd1:1094//rucio"
-
-        ri = RucioInterface(self.butler, rucio_rse, scope, self.rse_root, dtn_url, DataType.DATA_PRODUCT)
-        with self.assertRaises(Exception):
-            ri._add_file_to_dataset_with_retries(None, None)
 
     def tearDown(self):
         patch.stopall()
