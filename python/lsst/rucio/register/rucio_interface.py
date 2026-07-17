@@ -20,11 +20,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-import random
-import time
 import zlib
 
+import backoff
+import requests
 import rucio.common.exception
+import urllib3.exceptions
 from rucio.client.didclient import DIDClient
 from rucio.client.replicaclient import ReplicaClient
 
@@ -37,7 +38,30 @@ from lsst.rucio.register.rucio_did import RucioDID
 
 __all__ = ["RucioInterface"]
 
+RETRYABLE = (
+    urllib3.exceptions.ReadTimeoutError,
+    urllib3.exceptions.ProtocolError,
+    requests.exceptions.ConnectionError,
+    requests.exceptions.Timeout,
+    requests.exceptions.ChunkedEncodingError,
+    rucio.common.exception.ServerConnectionException,
+    rucio.common.exception.DatabaseException,
+)
+
 logger = logging.getLogger(__name__)
+
+_FACTOR = "factor"
+_MAX_VALUE = "max_value"
+_MAX_TRIES = "max_tries"
+_BACKOFF = {_FACTOR: 5, _MAX_VALUE: 30, _MAX_TRIES: 5}
+
+
+def _backoff_message(details):
+    logger.info(
+        "Backing off {wait:0.1f} seconds after {tries} tries "
+        "calling function {target} with args {args} and kwargs "
+        "{kwargs}".format(**details)
+    )
 
 
 class RucioInterface:
@@ -211,6 +235,15 @@ class RucioInterface:
 
         return d
 
+    @backoff.on_exception(
+        backoff.expo,
+        RETRYABLE,
+        factor=lambda: _BACKOFF[_FACTOR],
+        max_value=lambda: _BACKOFF[_MAX_VALUE],
+        max_tries=lambda: _BACKOFF[_MAX_TRIES],
+        jitter=None,
+        on_backoff=_backoff_message,
+    )
     def _add_replicas(self, bundles: list[ResourceBundle]) -> None:
         """Call the Rucio method add_replica for a list of DIDs
 
@@ -219,23 +252,20 @@ class RucioInterface:
         bundles : `list` [`ResourceBundle`]
             A list of ResourceBundles
         """
-        dids = [bundle.get_did() for bundle in bundles]
-        retries = 0
-        max_retries = 5
-        while True:
-            try:
-                self.replica_client.add_replicas(rse=self.rse, files=dids)
-                break
-            except rucio.common.exception.RucioException:
-                retries += 1
-                if retries < max_retries:
-                    seconds = random.randint(10, 20)
-                    logger.debug("failed to add_replicas; sleeping %d seconds", seconds)
-                    time.sleep(seconds)
-                    self.replica_client = ReplicaClient()  # XXX not sure we need to do this.
-                else:
-                    raise Exception(f"Tried {max_retries} times and couldn't add_replicas")
 
+        dids = [bundle.get_did() for bundle in bundles]
+
+        self.replica_client.add_replicas(rse=self.rse, files=dids)
+
+    @backoff.on_exception(
+        backoff.expo,
+        RETRYABLE,
+        factor=lambda: _BACKOFF[_FACTOR],
+        max_value=lambda: _BACKOFF[_MAX_VALUE],
+        max_tries=lambda: _BACKOFF[_MAX_TRIES],
+        jitter=None,
+        on_backoff=_backoff_message,
+    )
     def _add_files_to_dataset(self, dataset_id: str, dids: list[dict]) -> None:
         """Attach a list of files specified by Rucio DIDs to a Rucio dataset.
 
@@ -248,58 +278,43 @@ class RucioInterface:
         dids : `list` [`dict` [`str`, `str`|`int`] ]
             List of Rucio data identifiers.
         """
-        retries = 0
-        max_retries = 5
-        while True:
-            try:
-                self.did_client.add_files_to_datasets(
-                    attachments=[
-                        {
-                            "scope": self.scope,
-                            "name": dataset_id,
-                            "dids": dids,
-                            "rse": self.rse,
-                        }
-                    ],
-                    ignore_duplicate=True,
-                )
-                return
-            except rucio.common.exception.DataIdentifierNotFound as e:
-                raise e
-            except rucio.common.exception.RucioException:
-                retries += 1
-                if retries < max_retries:
-                    seconds = random.randint(10, 20)
-                    logger.debug("failed to register dids to %s; sleeping %d", dataset_id, seconds)
-                    time.sleep(seconds)
-                    continue
-                else:
-                    raise Exception(f"Couldn't add files to dataset {dataset_id}")
+        try:
+            self.did_client.add_files_to_datasets(
+                attachments=[
+                    {
+                        "scope": self.scope,
+                        "name": dataset_id,
+                        "dids": dids,
+                        "rse": self.rse,
+                    }
+                ],
+                ignore_duplicate=True,
+            )
+            return
+        except rucio.common.exception.DataIdentifierNotFound as e:
+            raise e
 
+    @backoff.on_exception(
+        backoff.expo,
+        RETRYABLE,
+        factor=lambda: _BACKOFF[_FACTOR],
+        max_value=lambda: _BACKOFF[_MAX_VALUE],
+        max_tries=lambda: _BACKOFF[_MAX_TRIES],
+        jitter=None,
+        on_backoff=_backoff_message,
+    )
     def _add_dataset_with_retries(self, dataset_id: str, statuses: dict) -> None:
-        retries = 0
-        max_retries = 5
-        while True:
-            try:
-                self.did_client.add_dataset(
-                    scope=self.scope,
-                    name=dataset_id,
-                    statuses=statuses,
-                    rse=self.rse,
-                )
-                return
-            except rucio.common.exception.DataIdentifierAlreadyExists as e:
-                # If someone else created it in the meantime
-                raise e
-            except rucio.common.exception.RucioException:
-                retries += 1
-                if retries < max_retries:
-                    seconds = random.randint(10, 20)
-                    logger.debug("couldn't register dids to %s; waiting %d", dataset_id, seconds)
-                    time.sleep(seconds)
-                    continue
-                else:
-                    raise Exception(f"Tried {max_retries} times and couldn't add dataset {dataset_id}")
+        try:
+            self.did_client.add_dataset(
+                scope=self.scope,
+                name=dataset_id,
+                statuses=statuses,
+                rse=self.rse,
+            )
+            return
+        except rucio.common.exception.DataIdentifierAlreadyExists as e:
+            # If someone else created it in the meantime
+            raise e
 
     def register_to_dataset(self, bundles) -> None:
         """Register a list of files in Rucio.
@@ -325,6 +340,7 @@ class RucioInterface:
             except rucio.common.exception.DataIdentifierNotFound:
                 # No such dataset, so create it
                 try:
+                    logger.info("Couldn't register because dataset not yet registered")
                     logger.info("Creating Rucio dataset %s", dataset_id)
                     self._add_dataset_with_retries(
                         dataset_id=dataset_id,
@@ -334,9 +350,28 @@ class RucioInterface:
                     # If someone else created it in the meantime
                     pass
                 # And then retry adding DIDs
+                logger.info("Dataset registered.")
+                logger.info("Retrying registering %s in dataset %s, RSE %s", names, dataset_id, self.rse)
                 self._add_files_to_dataset(dataset_id, dids)
 
         logger.debug("Done with Rucio for %s", bundles)
+
+    def set_backoff(self, factor, max_value, max_tries) -> None:
+        """Set backoff values for retries
+
+        Parameters
+        ----------
+        factor: `float`
+            Multipler for backoff
+        max_value: `int`
+            Maximum seconds to backoff to
+        max_tries: `int`
+            Maximum times to try
+        """
+        logger.debug("factor=%f, max_value=%d, max_tries=%d", factor, max_value, max_tries)
+        _BACKOFF[_FACTOR] = factor
+        _BACKOFF[_MAX_VALUE] = max_value
+        _BACKOFF[_MAX_TRIES] = max_tries
 
     def register_as_replicas(self, dataset_id, dataset_refs) -> None:
         """Register a list of DatasetRefs to a Rucio dataset

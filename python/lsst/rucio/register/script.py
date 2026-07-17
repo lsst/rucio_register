@@ -48,6 +48,42 @@ RUCIO_REGISTER_CONFIG = "RUCIO_REGISTER_CONFIG"
 _MSG = "environment variable not set, and no configuration was specified on the command line"
 
 
+def register_options(func):
+    func = click.option(
+        "--backoff-max-tries",
+        required=False,
+        type=int,
+        default=5,
+        show_default=True,
+        help="maximum number of tries",
+    )(func)
+    func = click.option(
+        "--backoff-max-value",
+        required=False,
+        type=int,
+        default=30,
+        show_default=True,
+        help="maximum backoff value",
+    )(func)
+    func = click.option(
+        "--backoff-factor", required=False, type=float, default=5.0, show_default=True, help="backoff factor"
+    )(func)
+    func = click.option(
+        "--chunk-size",
+        required=False,
+        type=int,
+        default=30,
+        help="number of replica requests to make at once",
+    )(func)
+    func = click.option(
+        "--rucio-register-config", required=False, type=str, help="registration configuration file"
+    )(func)
+    func = click.option(
+        "--rucio-dataset", required=True, type=str, help="rucio dataset to register files to"
+    )(func)
+    return func
+
+
 def chunks(refs, chunk_size):
     it = iter(refs)
     while True:
@@ -59,7 +95,7 @@ def chunks(refs, chunk_size):
         yield itertools.chain((start,), chunk)
 
 
-def _getRucioInterface(repo, rucio_register_config, rubin_butler_type):
+def _getRucioInterface(repo, rucio_register_config, rubin_butler_type, kwargs):
     # default to using RUCIO_REGISTER_CONFIG env variable
     # if that's not set, try to use the command line
     # if neither are set, then raise an Exception
@@ -87,6 +123,12 @@ def _getRucioInterface(repo, rucio_register_config, rubin_butler_type):
         dtn_url=dtn_url,
         rubin_butler_type=rubin_butler_type,
     )
+
+    backoff_factor = kwargs.get("backoff_factor")
+    backoff_max_value = kwargs.get("backoff_max_value")
+    backoff_max_tries = kwargs.get("backoff_max_tries")
+    ri.set_backoff(factor=backoff_factor, max_value=backoff_max_value, max_tries=backoff_max_tries)
+
     return ri, butler
 
 
@@ -137,20 +179,11 @@ def _get_and_delete(kwargs, key):
 
 @main.command()
 @click.option("--repo", required=True, type=str, help="butler repository")
-@click.option("--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
-@click.option("--rucio-register-config", required=False, type=str, help="registration configuration file")
-@click.option(
-    "--chunk-size",
-    required=False,
-    type=int,
-    default=30,
-    help="number of replica requests to make at once",
-)
+@register_options
 @log_level_option()
 @options_file_option()
 @query_datasets_options(repo=False, showUri=True, useArguments=False)
 def data_products(**kwargs: Any) -> None:
-    # get and delete from kwargs; QueryDatasets doesn't like extra args
     log_level = kwargs.get("log_level", None)
     _set_log_level(log_level)
 
@@ -166,7 +199,7 @@ def data_products(**kwargs: Any) -> None:
     order_by = kwargs.get("order_by", None)
     dataset_type = kwargs.get("dataset_type", None)
 
-    ri, butler = _getRucioInterface(repo, rucio_register_config, DataType.DATA_PRODUCT)
+    ri, butler = _getRucioInterface(repo, rucio_register_config, DataType.DATA_PRODUCT, kwargs)
 
     query = QueryDatasets(
         butler=butler,
@@ -187,15 +220,7 @@ def data_products(**kwargs: Any) -> None:
 
 @main.command()
 @click.option("--repo", required=True, type=str, help="butler repository")
-@click.option("--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
-@click.option("--rucio-register-config", required=False, type=str, help="registration configuration file")
-@click.option(
-    "--chunk-size",
-    required=False,
-    type=int,
-    default=30,
-    help="number of replica requests to make at once",
-)
+@register_options
 @click.option(
     "--uuidlist",
     required=False,
@@ -207,7 +232,6 @@ def data_products(**kwargs: Any) -> None:
 @log_level_option()
 @options_file_option()
 def dataset_list(**kwargs: Any) -> None:
-    # get and delete from kwargs
     log_level = kwargs.get("log_level", None)
     _set_log_level(log_level)
 
@@ -233,17 +257,7 @@ def dataset_list(**kwargs: Any) -> None:
 
 @main.command()
 @click.option("--repo", required=True, type=str, help="butler repository")
-@click.option("--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
-@click.option(
-    "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
-)
-@click.option(
-    "--chunk-size",
-    required=False,
-    type=int,
-    default=30,
-    help="number of replica requests to make at once",
-)
+@register_options
 @log_level_option()
 @options_file_option()
 @query_datasets_options(repo=False, showUri=True)
@@ -258,7 +272,12 @@ def raws(**kwargs: Any) -> None:
 
     repo = kwargs["repo"]
 
-    ri, butler = _getRucioInterface(repo, rucio_register_config, DataType.RAW_FILE)
+    ri, butler = _getRucioInterface(repo, rucio_register_config, DataType.RAW_FILE, kwargs)
+
+    # QueryDatsets called in this way doesn't like extra kwarg values
+    del kwargs["backoff-factor"]
+    del kwargs["backoff-max-value"]
+    del kwargs["backoff-max-tries"]
 
     # chain is needed to flatten the list of lists returned by getDatasets()
     dataset_refs = itertools.chain.from_iterable(QueryDatasets(**kwargs).getDatasets())
@@ -267,44 +286,36 @@ def raws(**kwargs: Any) -> None:
 
 
 @main.command()
-@click.option("--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
-@click.option(
-    "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
-)
-@click.option(
-    "--chunk-size",
-    required=False,
-    type=int,
-    default=30,
-    help="number of replica requests to make at once",
-)
+@register_options
 @click.option("--zip-file", required=True, help="zip file to register")
 @log_level_option()
-def zips(rucio_dataset, rucio_register_config, chunk_size, zip_file, log_level):
+def zips(**kwargs: Any) -> None:
+    log_level = kwargs.get("log_level", None)
     _set_log_level(log_level)
 
-    ri, butler = _getRucioInterface(None, rucio_register_config, DataType.ZIP_FILE)
+    rucio_register_config = kwargs.get("rucio_register_config", None)
+    rucio_dataset = kwargs.get("rucio_dataset", None)
+    chunk_size = kwargs.get("chunk_size", None)
+    zip_file = kwargs.get("zip_file", None)
+
+    ri, butler = _getRucioInterface(None, rucio_register_config, DataType.ZIP_FILE, kwargs)
 
     _register_zips(ri, [zip_file], chunk_size, rucio_dataset)
 
 
 @main.command()
-@click.option("--rucio-dataset", required=True, type=str, help="rucio dataset to register files to")
-@click.option(
-    "--rucio-register-config", required=False, type=str, help="configuration file used for registration"
-)
-@click.option(
-    "--chunk-size",
-    required=False,
-    type=int,
-    default=30,
-    help="number of replica requests to make at once",
-)
+@register_options
 @click.option("--dimension-file", required=True, help="dimension file to register")
 @log_level_option()
-def dimensions(rucio_dataset, rucio_register_config, chunk_size, dimension_file, log_level):
+def dimensions(**kwargs: Any) -> None:
+    log_level = kwargs.get("log_level", None)
     _set_log_level(log_level)
 
-    ri, butler = _getRucioInterface(None, rucio_register_config, DataType.DIM_FILE)
+    rucio_register_config = kwargs.get("rucio_register_config", None)
+    rucio_dataset = kwargs.get("rucio_dataset", None)
+    chunk_size = kwargs.get("chunk_size", None)
+    dimension_file = kwargs.get("dimension_file", None)
+
+    ri, butler = _getRucioInterface(None, rucio_register_config, DataType.DIM_FILE, kwargs)
 
     _register_dims(ri, [dimension_file], chunk_size, rucio_dataset)
