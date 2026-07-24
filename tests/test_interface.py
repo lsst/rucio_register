@@ -25,9 +25,11 @@ import shutil
 import tempfile
 from unittest.mock import MagicMock, patch
 
+import urllib3
 from rucio.client.didclient import DIDClient
 from rucio.client.replicaclient import ReplicaClient
 from rucio.common.exception import (
+    DataIdentifierNotFound,
     FileAlreadyExists,
     RucioException,
 )
@@ -157,6 +159,43 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
     @patch.object(DIDClient, "add_files_to_dataset", side_effect=FileAlreadyExists("failed"))
     def testException2TestCase(self, MC1):
         self.common()
+
+    @patch.dict("lsst.rucio.register.rucio_interface._BACKOFF", {"factor": 0.5, "max_tries": 3})
+    @patch.object(
+        ReplicaClient,
+        "add_replicas",
+        side_effect=urllib3.exceptions.ReadTimeoutError(pool=None, url="http://127.0.0.1/", message="failed"),
+    )
+    def testException3TestCase(self, MC3):
+        self.ri.register_to_dataset = MagicMock(name="register_to_dataset")
+        with self.assertRaises(Exception):
+            self.common()
+
+    @patch.dict("lsst.rucio.register.rucio_interface._BACKOFF", {"factor": 0.5, "max_tries": 3})
+    @patch.object(
+        DIDClient,
+        "add_files_to_datasets",
+        side_effect=urllib3.exceptions.ReadTimeoutError(pool=None, url="http://127.0.0.1/", message="failed"),
+    )
+    def testException4TestCase(self, MC4):
+        with self.assertRaises(Exception):
+            self.common()
+
+    @patch.object(DIDClient, "add_files_to_datasets", side_effect=DataIdentifierNotFound("failed"))
+    def testException5TestCase(self, MC5):
+        with self.assertRaises(Exception):
+            self.common()
+
+    @patch.dict("lsst.rucio.register.rucio_interface._BACKOFF", {"factor": 0.5, "max_tries": 3})
+    @patch.object(DIDClient, "add_files_to_datasets", side_effect=DataIdentifierNotFound("failed"))
+    @patch.object(
+        DIDClient,
+        "add_dataset",
+        side_effect=urllib3.exceptions.ReadTimeoutError(pool=None, url="http://127.0.0.1/", message="failed"),
+    )
+    def testException6TestCase(self, MC6a, MC6b):
+        with self.assertRaises(Exception):
+            self.common()
 
     def tearDown(self):
         patch.stopall()

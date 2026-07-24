@@ -54,6 +54,28 @@ rucio-register dimensions --rucio-dataset rubin_dataset --log-level INFO --rucio
 Note for zip files, register a single zip file at a time.
 
 
+# Retries in case of failure
+
+There are a variety of reasons that registeration to Rucio can fail.  In an effort to prevent a failure from completely halting the command, rucio-register will attempt to retry registration,
+and uses exponential backoff as a retry strategy where the wait time between retries grows exponentially.
+
+The default behavior for this is as follows:
+
+--backoff-factor 
+
+A multiplier that scales how long the waits are. With exponential backoff, the wait before attempt n is roughly backoff-factor * (2 ** n). So factor=1 gives you waits of 1, 2, 4, 8, 16… seconds. Bump it to backoff-factor=2 and you get 2, 4, 8, 16…; drop it to backoff-factor=0.5 and you get 0.5, 1, 2, 4…. Think of it as a dial that stretches or shrinks the whole waiting curve up and down.
+
+--backoff-max-value
+
+A ceiling on any single wait. Exponential growth gets big fast (1, 2, 4… 512, 1024 seconds), which you usually don't want. backoff-max-value caps how long any one wait can be. With backoff-max-value=60, the waits climb 1, 2, 4, 8, 16, 32, then flatten out at 60, 60, 60, instead of continuing to double.
+
+--backoff-max-tries
+
+The total number of attempts before backoff gives up and lets the error through. It counts all tries, including the very first one.
+
+Put together, a typical setup like backoff-factor=1, backoff-max-value=60, backoff-max-tries=5 means: retry up to 4 times, waiting 1s, then 2s, 4s, 8s — but never longer than 60s on any single wait.
+
+Defaults are backoff-factor=5.0, backoff-max-value=30, backoff-max-tries=5
 
 ## config.yaml
 
