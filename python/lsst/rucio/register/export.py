@@ -67,7 +67,8 @@ def main(repo: str, glob: Any, filename: str, root: str | None = None, **kwargs:
             include_summary=True,
             summary_datasets=ds_types,
         ):
-            present_ds_types = ds_types & collection_info.dataset_types
+            collection_ds_types = collection_info.dataset_types or set()
+            present_ds_types = ds_types & collection_ds_types
             if present_ds_types:
                 if collection_info.type == CollectionType.CALIBRATION:
                     print(f"Saving collection associations: {collection_info.name}")

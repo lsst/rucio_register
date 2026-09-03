@@ -7,3 +7,4 @@ tests/.tests/
 bin/
 config.log
 .sconsign.dblite
+.vscode/
