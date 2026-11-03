@@ -772,99 +772,28 @@ def _load_curated_dataset_types(transfer_list: str) -> set[str]:
     return curated_types
 
 
-def _matches_dataset_type(ref: Any, target_type: str) -> bool:
-    """Check if a DatasetRef matches a target dataset_type name.
-
-    Supports MagicMock.
-    """
-    ds_type = getattr(ref, "dataset_type", getattr(ref, "datasetType", None))
-    if ds_type is None:
-        return True
-    type_name = getattr(ds_type, "name", None) if not isinstance(ds_type, str) else ds_type
-    if type_name is None:
-        return True
-    if type(type_name).__name__ == "MagicMock":
-        return True
-    return str(type_name) == str(target_type)
-
-
-def _query_butler_task(
-    repo: str, task: dict[str, Any], butler: Any = None
-) -> tuple[dict[str, Any], list[Any]]:
+def _query_butler_task(repo: str, task: dict[str, Any]) -> tuple[dict[str, Any], list[Any]]:
     collection = task["collection"]
     dataset_type = task["dataset_type"]
     where = task["where"]
-    limit = task.get("limit", None)
-    curated_types = task.get("curated_types")
-
-    if curated_types is not None:
-        limit = None
 
     try:
-        if butler is None:
-            if not hasattr(_thread_local, "butlers"):
-                _thread_local.butlers = {}
-            if repo not in _thread_local.butlers:
-                _thread_local.butlers[repo] = Butler(repo)
-            butler = _thread_local.butlers[repo]
+        if not hasattr(_thread_local, "butlers"):
+            _thread_local.butlers = {}
+        if repo not in _thread_local.butlers:
+            _thread_local.butlers[repo] = Butler(repo)
+        butler = _thread_local.butlers[repo]
 
-        if dataset_type is None:
-            refs = list(
-                butler.query_all_datasets(
-                    collections=collection,
-                    name=task.get("dataset_types", "*"),
-                    where=where,
-                    find_first=False,
-                    limit=limit,
-                )
-            )
-            if curated_types is not None:
-                refs = [
-                    ref
-                    for ref in refs
-                    if _matches_dataset_type(
-                        ref, getattr(ref, "dataset_type", getattr(ref, "datasetType", None))
-                    )
-                ]
-        else:
-            try:
-                raw_res = butler.query_datasets(
-                    dataset_type=dataset_type,
-                    collections=collection,
-                    find_first=False,
-                    where=where,
-                    order_by="ingest_date",
-                    limit=None,
-                    explain=False,
-                )
-                is_mock = type(raw_res).__name__ == "MagicMock"
-                refs = list(raw_res) if not is_mock else []
-            except _exceptions.EmptyQueryResultError:
-                is_mock = False
-                refs = []
-            except Exception:
-                is_mock = True
-                refs = []
-
-            if (is_mock or not refs) and hasattr(butler, "query_all_datasets"):
-                if not is_mock and refs == []:
-                    pass
-                else:
-                    try:
-                        res = butler.query_all_datasets(
-                            collections=collection,
-                            name=dataset_type,
-                            where=where,
-                            find_first=False,
-                            limit=limit,
-                        )
-                        if isinstance(res, list) and res:
-                            matching = [r for r in res if _matches_dataset_type(r, dataset_type)]
-                            if matching:
-                                refs = matching
-                    except Exception:
-                        pass
-        return task, refs
+        raw_res = butler.query_datasets(
+            dataset_type=dataset_type,
+            collections=collection,
+            find_first=False,
+            where=where,
+            order_by="ingest_date",
+            limit=None,
+            explain=False,
+        )
+        return task, list(raw_res)
     except _exceptions.EmptyQueryResultError as e:
         logger.debug("Empty query result for task %s: %s", task, e)
         return task, []
@@ -1099,10 +1028,7 @@ def auto_register(**kwargs: Any) -> None:
             # Query Butler across dataset types using ProcessPoolExecutor
             query_results = []
             with ProcessPoolExecutor(max_workers=max_workers) as executor:
-                b_arg = butler if type(executor).__name__ == "DummyExecutor" else None
-                futures = {
-                    executor.submit(_query_butler_task, repo, task, butler=b_arg): task for task in tasks
-                }
+                futures = {executor.submit(_query_butler_task, repo, task): task for task in tasks}
                 for future in as_completed(futures):
                     t, refs = future.result()
                     if refs:

@@ -105,6 +105,7 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
         self.repo = "/tmp/test_repo"
 
     def tearDown(self):
+        script._thread_local.__dict__.pop("butlers", None)
         self.tmp_dir.cleanup()
 
     @patch("lsst.rucio.register.script.ProcessPoolExecutor", DummyExecutor)
@@ -122,7 +123,7 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
         ref1.id = "11111111-1111-1111-1111-111111111111"
         ref2 = MagicMock()
         ref2.id = "22222222-2222-2222-2222-222222222222"
-        mock_butler.query_all_datasets.return_value = [ref1, ref2]
+        mock_butler.query_datasets.return_value = [ref1, ref2]
 
         runner = CliRunner()
         result = runner.invoke(
@@ -218,7 +219,7 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
 
         ref1 = MagicMock()
         ref1.id = "44444444-4444-4444-4444-444444444444"
-        mock_butler.query_all_datasets.return_value = [ref1]
+        mock_butler.query_datasets.return_value = [ref1]
 
         runner = CliRunner()
         result = runner.invoke(
@@ -318,7 +319,7 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
         mock_info = MagicMock()
         mock_info.dataset_types = ["visitSummary"]
         mock_butler.collections.get_info.return_value = mock_info
-        mock_butler.query_all_datasets.side_effect = _exceptions.EmptyQueryResultError(
+        mock_butler.query_datasets.side_effect = _exceptions.EmptyQueryResultError(
             reasons=["No datasets found"]
         )
         result = runner.invoke(
@@ -341,7 +342,7 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(result.exit_code, 0, msg=result.output)
 
         # Generic Exception
-        mock_butler.query_all_datasets.side_effect = Exception("Query error")
+        mock_butler.query_datasets.side_effect = Exception("Query error")
         result = runner.invoke(
             script.main,
             [
@@ -519,7 +520,9 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
         refC.id = "33333333-3333-3333-3333-333333333333"
         refC.dataset_type.name = "typeC"
 
-        mock_butler.query_all_datasets.return_value = [refA, refB, refC]
+        mock_butler.query_datasets.side_effect = lambda **kw: [
+            r for r in (refA, refB, refC) if r.dataset_type.name == kw.get("dataset_type")
+        ]
 
         runner = CliRunner()
         result = runner.invoke(
@@ -576,7 +579,7 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
         refA.id = "11111111-1111-1111-1111-111111111111"
         refA.dataset_type.name = "typeA"
 
-        mock_butler.query_all_datasets.return_value = [refA]
+        mock_butler.query_datasets.return_value = [refA]
 
         runner = CliRunner()
         result = runner.invoke(
@@ -624,7 +627,7 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
         refA = MagicMock()
         refA.id = "11111111-1111-1111-1111-111111111111"
         refA.dataset_type.name = "typeA"
-        mock_butler.query_all_datasets.return_value = [refA]
+        mock_butler.query_datasets.return_value = [refA]
 
         runner = CliRunner()
         result = runner.invoke(
