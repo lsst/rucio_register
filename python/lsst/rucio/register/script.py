@@ -998,8 +998,8 @@ def auto_register(**kwargs: Any) -> None:
     quarters = []
     for year in range(years[0], years[-1] + 1):
         for q in ["01-01", "04-01", "07-01", "10-01"]:
-            quarters.append(f"{year}-{q}")
-    quarters.append(f"{years[-1] + 1}-01-01")
+            quarters.append(_format_query_timestamp(f"{year}-{q}"))
+    quarters.append(_format_query_timestamp(f"{years[-1] + 1}-01-01"))
 
     q_skip = 0
     for i in range(len(quarters) - 1):
@@ -1074,7 +1074,11 @@ def auto_register(**kwargs: Any) -> None:
 
             q_num = (int(q_start.split("-")[1]) - 1) // 3 + 1
             year_val = q_start.split("-")[0]
-            where_expr = f"ingest_date >= T'{q_start}' AND ingest_date < T'{q_end}'"
+            effective_start = max(q_start, start_date)
+            effective_end = min(q_end, cutoff_date)
+            if effective_start >= effective_end:
+                continue
+            where_expr = f"ingest_date >= T'{effective_start}' AND ingest_date < T'{effective_end}'"
 
             # Parallelize Butler queries across dataset types
             tasks = [

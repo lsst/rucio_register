@@ -648,6 +648,47 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
         _, kwargs = mock_process_batch.call_args
         self.assertTrue(kwargs.get("clear_is_new"))
 
+    @patch("lsst.rucio.register.script.ProcessPoolExecutor", DummyExecutor)
+    @patch("lsst.rucio.register.script.Butler")
+    def test_auto_register_mid_quarter_dates(self, mock_butler_class):
+        mock_butler = MagicMock()
+        mock_butler_class.return_value = mock_butler
+        mock_butler.collections.query.return_value = ["HSC/runs/RC2/w_2023_32"]
+
+        mock_info = MagicMock()
+        mock_info.dataset_types = ["typeA"]
+        mock_butler.collections.get_info.return_value = mock_info
+        mock_butler.query_datasets.return_value = []
+
+        runner = CliRunner()
+        result = runner.invoke(
+            script.main,
+            [
+                "auto-register",
+                "--repo",
+                self.repo,
+                "--root-chain",
+                "HSC/runs/*",
+                "--start-date",
+                "2026-05-15",
+                "--cutoff-date",
+                "2026-08-15",
+                "--dry-run",
+                "--out-dir",
+                self.out_dir,
+            ],
+        )
+
+        self.assertEqual(result.exit_code, 0, msg=result.output)
+        where_clauses = [call.kwargs.get("where") for call in mock_butler.query_datasets.call_args_list]
+        self.assertEqual(
+            where_clauses,
+            [
+                "ingest_date >= T'2026-05-15T00:00:00' AND ingest_date < T'2026-07-01T00:00:00'",
+                "ingest_date >= T'2026-07-01T00:00:00' AND ingest_date < T'2026-08-15T00:00:00'",
+            ],
+        )
+
     @patch("lsst.rucio.register.script._get_rucio_interface")
     def test_dataset_list_with_json_uuidlist(self, mock_get_ri):
         mock_ri = MagicMock()
