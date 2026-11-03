@@ -24,6 +24,7 @@ import datetime
 import itertools
 import json
 import logging
+import multiprocessing
 import os
 import sys
 import threading
@@ -144,6 +145,7 @@ def _get_rucio_interface(
 
     config_file = os.environ.get(RUCIO_REGISTER_CONFIG, rucio_register_config)
     cache_key = (
+        os.getpid(),
         repo,
         config_file,
         rubin_butler_type,
@@ -253,7 +255,14 @@ def _register(
     total_chunks = len(ref_chunks)
 
     if max_workers > 1 and total_chunks > 1:
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        mp_context = multiprocessing.get_context("spawn")
+        log_level = kwargs.get("log_level", None) if kwargs else None
+        with ProcessPoolExecutor(
+            max_workers=max_workers,
+            mp_context=mp_context,
+            initializer=_set_log_level,
+            initargs=(log_level,),
+        ) as executor:
             future_to_chunk = {
                 executor.submit(
                     worker_register_replicas,
@@ -527,7 +536,7 @@ def dataset_list(**kwargs: Any) -> None:
 @options_file_option()
 @query_datasets_options(repo=False, showUri=True)
 def raws(**kwargs: Any) -> None:
-    log_level = kwargs.pop("log_level")
+    log_level = kwargs.get("log_level", None)
     _set_log_level(log_level)
 
     rucio_dataset = kwargs.get("rucio_dataset")
@@ -562,6 +571,7 @@ def raws(**kwargs: Any) -> None:
             "rucio_register_config",
             "chunk_size",
             "timeout",
+            "log_level",
         )
     }
 
@@ -1039,7 +1049,13 @@ def auto_register(**kwargs: Any) -> None:
 
             # Query Butler across dataset types using ProcessPoolExecutor
             query_results = []
-            with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            mp_context = multiprocessing.get_context("spawn")
+            with ProcessPoolExecutor(
+                max_workers=max_workers,
+                mp_context=mp_context,
+                initializer=_set_log_level,
+                initargs=(log_level,),
+            ) as executor:
                 futures = {executor.submit(_query_butler_task, repo, task): task for task in tasks}
                 for future in as_completed(futures):
                     t, refs = future.result()
@@ -1101,7 +1117,12 @@ def auto_register(**kwargs: Any) -> None:
                 f"({len(batch_tasks)} sub-batches, batch_workers={max_workers})"
             )
 
-            with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            with ProcessPoolExecutor(
+                max_workers=max_workers,
+                mp_context=mp_context,
+                initializer=_set_log_level,
+                initargs=(log_level,),
+            ) as executor:
                 futures = {
                     executor.submit(_process_auto_register_batch, **task_kwargs): task_kwargs
                     for task_kwargs in batch_tasks
