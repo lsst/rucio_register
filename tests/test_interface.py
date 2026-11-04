@@ -206,6 +206,25 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         self.ri.set_backoff(factor=2.0, max_value=60, max_tries=12)
         self.assertEqual(self.ri.retries, 12)
 
+    def testTimeoutConfigured(self):
+        self.assertEqual(self.ri.timeout, RucioInterface.DEFAULT_TIMEOUT)
+        self.assertEqual(RucioInterface.DEFAULT_TIMEOUT, 300.0)
+        self.mock_rc_init.assert_called_with(timeout=300.0)
+        self.mock_dc_init.assert_called_with(timeout=300.0)
+
+        custom_ri = RucioInterface(
+            self.butler,
+            "DRR1",
+            "test",
+            self.rse_root,
+            "root://xrd1:1094//rucio",
+            DataType.DATA_PRODUCT,
+            timeout=120.0,
+        )
+        self.assertEqual(custom_ri.timeout, 120.0)
+        self.mock_rc_init.assert_called_with(timeout=120.0)
+        self.mock_dc_init.assert_called_with(timeout=120.0)
+
     @patch.dict("lsst.rucio.register.rucio_interface._BACKOFF", {"factor": 0.5, "max_tries": 3})
     @patch.object(
         ReplicaClient,

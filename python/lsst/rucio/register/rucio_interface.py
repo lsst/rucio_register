@@ -83,13 +83,22 @@ class RucioInterface:
         Full path to root directory of RSE directory structure
     dtn_url : `str`
         Base URL of the data transfer node for the Rucio physical filename.
-    rubin_butler_type: `str`
-        the type registered in "rubin_butler" metadata for rucio
+    rubin_butler_type : `str`
+        The type registered in "rubin_butler" metadata for Rucio.
+    clear_is_new : `bool`, optional
+        If `True`, set ``is_new`` metadata to `None` on Rucio dataset DIDs
+        post-registration.
+    retries : `int`, optional
+        Maximum number of times to retry failed Rucio operations.
+    timeout : `float`, optional
+        HTTP request timeout in seconds for Rucio ``ReplicaClient`` and
+        ``DIDClient`` operations.
     """
 
     DEFAULT_BACKOFF_FACTOR = 5.0
     DEFAULT_BACKOFF_MAX_VALUE = 30
     DEFAULT_RETRIES = 8
+    DEFAULT_TIMEOUT = 300.0
 
     def __init__(
         self,
@@ -101,6 +110,7 @@ class RucioInterface:
         rubin_butler_type: str,
         clear_is_new: bool = False,
         retries: int = DEFAULT_RETRIES,
+        timeout: float = DEFAULT_TIMEOUT,
     ):
         self.butler = butler
         self.rse = rucio_rse
@@ -108,8 +118,9 @@ class RucioInterface:
         self.rse_root = rse_root
         self.dtn_url = dtn_url
         self.pfn_base = f"{dtn_url}"
-        self.replica_client = ReplicaClient(timeout=15.0)
-        self.did_client = DIDClient(timeout=15.0)
+        self.timeout = timeout
+        self.replica_client = ReplicaClient(timeout=timeout)
+        self.did_client = DIDClient(timeout=timeout)
         self.rubin_butler_type = rubin_butler_type
         self.clear_is_new = clear_is_new
         self.retries = retries
