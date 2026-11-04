@@ -225,7 +225,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         self.mock_rc_init.assert_called_with(timeout=120.0)
         self.mock_dc_init.assert_called_with(timeout=120.0)
 
-    @patch.dict("lsst.rucio.register.rucio_interface._BACKOFF", {"factor": 0.5, "max_tries": 3})
+    @patch.dict("lsst.rucio.register.rucio_interface._BACKOFF", FAST_BACKOFF)
     @patch.object(
         ReplicaClient,
         "add_replicas",
@@ -236,7 +236,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         with self.assertRaises(Exception):
             self.common()
 
-    @patch.dict("lsst.rucio.register.rucio_interface._BACKOFF", {"factor": 0.5, "max_tries": 3})
+    @patch.dict("lsst.rucio.register.rucio_interface._BACKOFF", FAST_BACKOFF)
     @patch.object(
         DIDClient,
         "add_files_to_datasets",
@@ -252,7 +252,7 @@ class InterfaceTestCase(lsst.utils.tests.TestCase):
         with self.assertRaises(Exception):
             self.common()
 
-    @patch.dict("lsst.rucio.register.rucio_interface._BACKOFF", {"factor": 0.5, "max_tries": 3})
+    @patch.dict("lsst.rucio.register.rucio_interface._BACKOFF", FAST_BACKOFF)
     @patch.object(DIDClient, "add_files_to_datasets", side_effect=DataIdentifierNotFound("failed"))
     @patch.object(
         DIDClient,

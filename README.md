@@ -41,6 +41,14 @@ The resulting datasets' files are registered with Rucio, as specified in
 the "config.yaml" file.  Additionally, those files are registered with the
 Rucio dataset specified by the "rucio-dataset" argument.
 
+Common options across registration commands include:
+- `--rucio-register-config`: Path to registration configuration file (or set via `RUCIO_REGISTER_CONFIG`).
+- `--rucio-dataset`: Target Rucio dataset name.
+- `--chunk-size`: Number of replica requests to make at once (default: `500`).
+- `--max-workers`: Number of concurrent workers for registration in `data-products`, `raws`, `dataset-list`, and `auto-register` (default: `5`).
+- `--clear-is-new`: Flag to set `is_new` metadata to `None` on Rucio dataset DIDs post-registration (supported on `data-products` and `auto-register`).
+- `--backoff-factor`, `--backoff-max-value`, `--backoff-max-tries` (or `--max-retries`): Retry backoff settings (see [Retries in case of failure](#retries-in-case-of-failure)).
+
 for zip files:
 ```
 rucio-register zips --rucio-dataset rubin_dataset --log-level INFO --rucio-register-config /home/lsst/rucio_register/examples/register_config.yaml --zip-file file:///rucio/disks/xrd1/rucio/test/something/2c8f9e54-9757-54c0-9119-4c3ac812a2da.zip
@@ -63,8 +71,12 @@ Options:
 - `--root-chain`: Collection expression / glob pattern to match (required).
 - `--start-date`: Start date for query in `YYYY-MM-DD` format (default: `2000-01-01`).
 - `--cutoff-date`: Cutoff date for query in `YYYY-MM-DD` format (default: current date).
+- `--df-name`: Data Facility name used in generated Rucio dataset names (default: `USDF`).
 - `--max-workers`: Number of concurrent workers for processing batches (default: `5`).
+- `--chunk-size`: Number of replica requests to make at once per batch (default: `500`).
 - `--split-size`: Sub-batch size for parallelizing large datasets into sub-chunks (default: `2000`).
+- `--max-did-per-dataset`: Maximum number of items per Rucio dataset (default: `50000`).
+- `--max-dataset-types`: Maximum number of discovered dataset types to process per collection, useful for testing (default: `None`).
 - `--transfer-list`: Optional URL or local path to a curated YAML list of dataset types to register.
 - `--dataset-name-prefix`: Optional custom prefix for auto-registered Rucio datasets (replacing default `Dataset/{collection}`).
 - `--clear-is-new`: Flag to set `is_new` Rucio DID metadata to `None` post-registration.
@@ -152,7 +164,7 @@ A multiplier that scales how long the waits are. With exponential backoff, the w
 
 A ceiling on any single wait. Exponential growth gets big fast (1, 2, 4… 512, 1024 seconds), which you usually don't want. backoff-max-value caps how long any one wait can be. With backoff-max-value=60, the waits climb 1, 2, 4, 8, 16, 32, then flatten out at 60, 60, 60, instead of continuing to double.
 
---backoff-max-tries
+--backoff-max-tries / --max-retries
 
 The total number of attempts before backoff gives up and lets the error through. It counts all tries, including the very first one.
 

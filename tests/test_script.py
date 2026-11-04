@@ -692,6 +692,53 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
             ],
         )
 
+    @patch("lsst.rucio.register.script.ProcessPoolExecutor", DummyExecutor)
+    @patch("lsst.rucio.register.script._process_auto_register_batch")
+    @patch("lsst.rucio.register.script.Butler")
+    def test_auto_register_passes_backoff_parameters(self, mock_butler_class, mock_process_batch):
+        mock_butler = MagicMock()
+        mock_butler_class.return_value = mock_butler
+        mock_process_batch.return_value = {"registered": 1, "failed": 0}
+
+        mock_butler.collections.query.return_value = ["HSC/runs/RC2/w_2023_32"]
+        mock_info = MagicMock()
+        mock_info.dataset_types = ["typeA"]
+        mock_butler.collections.get_info.return_value = mock_info
+
+        refA = MagicMock()
+        refA.id = "11111111-1111-1111-1111-111111111111"
+        refA.dataset_type.name = "typeA"
+        mock_butler.query_datasets.return_value = [refA]
+
+        runner = CliRunner()
+        result = runner.invoke(
+            script.main,
+            [
+                "auto-register",
+                "--repo",
+                self.repo,
+                "--root-chain",
+                "HSC/runs/*",
+                "--start-date",
+                "2023-01-01",
+                "--cutoff-date",
+                "2023-04-01",
+                "--backoff-factor",
+                "2.5",
+                "--backoff-max-value",
+                "45",
+                "--backoff-max-tries",
+                "12",
+            ],
+        )
+
+        self.assertEqual(result.exit_code, 0, msg=result.output)
+        self.assertTrue(mock_process_batch.called)
+        _, kwargs = mock_process_batch.call_args
+        self.assertEqual(kwargs.get("backoff_factor"), 2.5)
+        self.assertEqual(kwargs.get("backoff_max_value"), 45)
+        self.assertEqual(kwargs.get("max_retries"), 12)
+
     @patch("lsst.rucio.register.script._get_rucio_interface")
     def test_dataset_list_with_json_uuidlist(self, mock_get_ri):
         mock_ri = MagicMock()
