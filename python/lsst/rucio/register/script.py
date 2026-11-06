@@ -709,42 +709,36 @@ def _process_refs_chunk(
     return local_stats
 
 
-def _process_auto_register_batch(*args: Any, **kwargs: Any) -> dict[str, int]:
+def _process_auto_register_batch(**kwargs: Any) -> dict[str, int]:
     """Worker function to process a batch of dataset refs for
     auto-registration.
     """
-    local_stats = {"registered": 0, "failed": 0}
-
-    # If pre-queried refs are passed directly:
     refs = kwargs.get("refs")
     ds_name = kwargs.get("ds_name")
     clear_is_new = kwargs.get("clear_is_new", False)
-    if refs is not None:
-        repo = kwargs.get("repo")
-        rucio_register_config = kwargs.get("rucio_register_config")
-        dry_run = kwargs.get("dry_run")
-        out_dir = kwargs.get("out_dir")
-        chunk_size = kwargs.get("chunk_size")
-        max_retries = kwargs.get("max_retries")
-        logger.info(
-            "Worker processing pre-queried sub-batch of size %d for Rucio dataset %s",
-            len(refs),
-            ds_name,
-        )
-        return _process_refs_chunk(
-            refs,
-            ds_name,
-            dry_run,
-            out_dir,
-            repo,
-            rucio_register_config,
-            chunk_size,
-            max_retries,
-            clear_is_new=clear_is_new,
-            kwargs=kwargs,
-        )
-
-    return local_stats
+    repo = kwargs.get("repo")
+    rucio_register_config = kwargs.get("rucio_register_config")
+    dry_run = kwargs.get("dry_run")
+    out_dir = kwargs.get("out_dir")
+    chunk_size = kwargs.get("chunk_size")
+    max_retries = kwargs.get("max_retries")
+    logger.info(
+        "Worker processing pre-queried sub-batch of size %d for Rucio dataset %s",
+        len(refs),
+        ds_name,
+    )
+    return _process_refs_chunk(
+        refs,
+        ds_name,
+        dry_run,
+        out_dir,
+        repo,
+        rucio_register_config,
+        chunk_size,
+        max_retries,
+        clear_is_new=clear_is_new,
+        kwargs=kwargs,
+    )
 
 
 def _load_curated_dataset_types(transfer_list: str) -> set[str]:
@@ -915,6 +909,8 @@ def auto_register(**kwargs: Any) -> None:
     chunk_size = kwargs.get("chunk_size", 500)
     max_workers = kwargs.get("max_workers", 5)
     max_retries = kwargs.get("max_retries", kwargs.get("backoff_max_tries", RucioInterface.DEFAULT_RETRIES))
+    backoff_factor = kwargs.get("backoff_factor", RucioInterface.DEFAULT_BACKOFF_FACTOR)
+    backoff_max_value = kwargs.get("backoff_max_value", RucioInterface.DEFAULT_BACKOFF_MAX_VALUE)
     clear_is_new = kwargs.get("clear_is_new", False)
 
     start_date = _format_query_timestamp(kwargs["start_date"])
@@ -1076,6 +1072,8 @@ def auto_register(**kwargs: Any) -> None:
                                 "out_dir": out_dir,
                                 "chunk_size": chunk_size,
                                 "max_retries": max_retries,
+                                "backoff_factor": backoff_factor,
+                                "backoff_max_value": backoff_max_value,
                                 "clear_is_new": clear_is_new,
                             }
                         )
@@ -1092,6 +1090,8 @@ def auto_register(**kwargs: Any) -> None:
                             "out_dir": out_dir,
                             "chunk_size": chunk_size,
                             "max_retries": max_retries,
+                            "backoff_factor": backoff_factor,
+                            "backoff_max_value": backoff_max_value,
                             "clear_is_new": clear_is_new,
                         }
                     )
