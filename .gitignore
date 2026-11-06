@@ -8,3 +8,6 @@ bin/
 config.log
 .sconsign.dblite
 .vscode/
+.ruff_cache/
+.sconf_temp/
+.pytest_cache/
