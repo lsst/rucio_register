@@ -79,8 +79,15 @@ class ChunksTestCase(unittest.TestCase):
 
 
 class DummyExecutor:
-    def __init__(self, max_workers=None):
-        pass
+    last_instances = []
+
+    def __init__(self, max_workers=None, mp_context=None, initializer=None, initargs=()):
+        self.mp_context = mp_context
+        self.initializer = initializer
+        self.initargs = initargs
+        DummyExecutor.last_instances.append(self)
+        if initializer is not None:
+            initializer(*initargs)
 
     def __enter__(self):
         return self
@@ -790,6 +797,76 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
         script._get_rucio_interface(self.repo, "dummy.yaml", "DATA_PRODUCT", kwargs={"timeout": 450.0})
         self.assertEqual(mock_ri_class.call_args.kwargs.get("timeout"), 450.0)
         script._rucio_interface_cache.clear()
+
+    @patch("lsst.rucio.register.script.RucioInterface")
+    @patch("lsst.rucio.register.script.Butler")
+    @patch("lsst.rucio.register.script.RucioRegisterConfig")
+    def test_get_rucio_interface_cache_isolated_by_pid(
+        self, mock_config_class, mock_butler_class, mock_ri_class
+    ):
+        script._rucio_interface_cache.clear()
+        mock_config = MagicMock()
+        mock_config.rucio_rse = "RSE"
+        mock_config.scope = "test"
+        mock_config.rse_root = "/tmp"
+        mock_config.dtn_url = "root://localhost"
+        mock_config_class.return_value = mock_config
+
+        mock_butler_class.side_effect = lambda repo: MagicMock(name=f"Butler-{repo}")
+        mock_ri_class.side_effect = lambda **kw: MagicMock(name="RucioInterface")
+
+        with patch("os.getpid", return_value=1000):
+            ri1, b1 = script._get_rucio_interface(self.repo, "dummy.yaml", "DATA_PRODUCT")
+            ri1_again, b1_again = script._get_rucio_interface(self.repo, "dummy.yaml", "DATA_PRODUCT")
+            self.assertIs(ri1, ri1_again)
+            self.assertIs(b1, b1_again)
+
+        with patch("os.getpid", return_value=1001):
+            ri2, b2 = script._get_rucio_interface(self.repo, "dummy.yaml", "DATA_PRODUCT")
+            self.assertIsNot(ri1, ri2)
+            self.assertIsNot(b1, b2)
+
+        script._rucio_interface_cache.clear()
+
+    @patch("lsst.rucio.register.script.ProcessPoolExecutor", DummyExecutor)
+    @patch("lsst.rucio.register.script.Butler")
+    def test_process_pool_executor_sets_log_level_initializer(self, mock_butler_class):
+        DummyExecutor.last_instances.clear()
+        mock_butler = MagicMock()
+        mock_butler_class.return_value = mock_butler
+        mock_butler.collections.query.return_value = ["HSC/runs/RC2/w_2023_32"]
+
+        mock_info = MagicMock()
+        mock_info.dataset_types = ["typeA"]
+        mock_butler.collections.get_info.return_value = mock_info
+        mock_butler.query_datasets.return_value = []
+
+        runner = CliRunner()
+        result = runner.invoke(
+            script.main,
+            [
+                "auto-register",
+                "--repo",
+                self.repo,
+                "--root-chain",
+                "HSC/runs/*",
+                "--start-date",
+                "2023-01-01",
+                "--cutoff-date",
+                "2023-04-01",
+                "--log-level",
+                "DEBUG",
+                "--dry-run",
+                "--out-dir",
+                self.out_dir,
+            ],
+        )
+
+        self.assertEqual(result.exit_code, 0, msg=result.output)
+        self.assertGreater(len(DummyExecutor.last_instances), 0)
+        for inst in DummyExecutor.last_instances:
+            self.assertIs(inst.initializer, script._set_log_level)
+            self.assertEqual(inst.initargs, ({None: "DEBUG"},))
 
 
 class MemoryTester(lsst.utils.tests.MemoryTestCase):
