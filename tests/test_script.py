@@ -723,6 +723,27 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(result.exit_code, 0, msg=result.output)
         mock_butler.get_many_datasets.assert_called_once_with(["019ee079-b7e4-700d-a0bf-03412ae4fe0a"])
 
+    @patch("lsst.rucio.register.script.RucioInterface")
+    @patch("lsst.rucio.register.script.Butler")
+    @patch("lsst.rucio.register.script.RucioRegisterConfig")
+    def test_get_rucio_interface_timeout(self, mock_config_class, mock_butler_class, mock_ri_class):
+        script._rucio_interface_cache.clear()
+        mock_ri_class.DEFAULT_BACKOFF_FACTOR = 5.0
+        mock_ri_class.DEFAULT_BACKOFF_MAX_VALUE = 30
+        mock_ri_class.DEFAULT_RETRIES = 8
+        mock_ri_class.DEFAULT_TIMEOUT = 300.0
+
+        mock_config = MagicMock()
+        mock_config.rucio_rse = "RSE"
+        mock_config.scope = "test"
+        mock_config.rse_root = "/tmp"
+        mock_config.dtn_url = "root://localhost"
+        mock_config_class.return_value = mock_config
+
+        script._get_rucio_interface(self.repo, "dummy.yaml", "DATA_PRODUCT", kwargs={"timeout": 450.0})
+        self.assertEqual(mock_ri_class.call_args.kwargs.get("timeout"), 450.0)
+        script._rucio_interface_cache.clear()
+
 
 class MemoryTester(lsst.utils.tests.MemoryTestCase):
     pass

@@ -83,6 +83,17 @@ def register_options(func):
         help="multiplicative factor to backoff by",
     )(func)
     func = click.option(
+        "--timeout",
+        required=False,
+        type=float,
+        default=RucioInterface.DEFAULT_TIMEOUT,
+        show_default=True,
+        help=(
+            "HTTP request timeout in seconds for Rucio client operations "
+            "(ReplicaClient and DIDClient bulk replica registration and dataset attachment)"
+        ),
+    )(func)
+    func = click.option(
         "--chunk-size",
         required=False,
         type=int,
@@ -122,12 +133,14 @@ def _get_rucio_interface(
         backoff_factor = kwargs.get("backoff_factor", RucioInterface.DEFAULT_BACKOFF_FACTOR)
         backoff_max_value = kwargs.get("backoff_max_value", RucioInterface.DEFAULT_BACKOFF_MAX_VALUE)
         backoff_max_tries = kwargs.get("backoff_max_tries", kwargs.get("max_retries", retries))
+        timeout = kwargs.get("timeout", RucioInterface.DEFAULT_TIMEOUT)
         if backoff_max_tries is not None:
             retries = backoff_max_tries
     else:
         backoff_factor = RucioInterface.DEFAULT_BACKOFF_FACTOR
         backoff_max_value = RucioInterface.DEFAULT_BACKOFF_MAX_VALUE
         backoff_max_tries = retries
+        timeout = RucioInterface.DEFAULT_TIMEOUT
 
     config_file = os.environ.get(RUCIO_REGISTER_CONFIG, rucio_register_config)
     cache_key = (
@@ -138,6 +151,7 @@ def _get_rucio_interface(
         retries,
         backoff_factor,
         backoff_max_value,
+        timeout,
     )
     if cache_key in _rucio_interface_cache:
         logger.debug("Reusing cached RucioInterface/Butler for key: %s", cache_key)
@@ -167,6 +181,7 @@ def _get_rucio_interface(
         rubin_butler_type=rubin_butler_type,
         clear_is_new=clear_is_new,
         retries=retries,
+        timeout=timeout,
     )
     ri.set_backoff(factor=backoff_factor, max_value=backoff_max_value, max_tries=retries)
 
@@ -546,6 +561,7 @@ def raws(**kwargs: Any) -> None:
             "rucio_dataset",
             "rucio_register_config",
             "chunk_size",
+            "timeout",
         )
     }
 

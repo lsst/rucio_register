@@ -144,7 +144,7 @@ and uses exponential backoff as a retry strategy where the wait time between ret
 
 The default behavior for this is as follows:
 
---backoff-factor 
+--backoff-factor
 
 A multiplier that scales how long the waits are. With exponential backoff, the wait before attempt n is roughly backoff-factor * (2 ** n). So factor=1 gives you waits of 1, 2, 4, 8, 16… seconds. Bump it to backoff-factor=2 and you get 2, 4, 8, 16…; drop it to backoff-factor=0.5 and you get 0.5, 1, 2, 4…. Think of it as a dial that stretches or shrinks the whole waiting curve up and down.
 
@@ -159,6 +159,10 @@ The total number of attempts before backoff gives up and lets the error through.
 Put together, a typical setup like backoff-factor=1, backoff-max-value=60, backoff-max-tries=5 means: retry up to 4 times, waiting 1s, then 2s, 4s, 8s — but never longer than 60s on any single wait.
 
 Defaults are backoff-factor=5.0, backoff-max-value=30, backoff-max-tries=8
+
+--timeout
+
+The HTTP request timeout in seconds for Rucio client operations (`ReplicaClient` and `DIDClient` calls such as bulk replica registration and attaching files to Rucio datasets). Increase this value if large bulk registration requests (e.g. high `--chunk-size`) time out waiting for the Rucio server to respond. The default is `300.0` seconds.
 
 ## config.yaml
 
