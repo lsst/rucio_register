@@ -74,8 +74,8 @@ Options:
 - `--df-name`: Data Facility name used in generated Rucio dataset names (default: `USDF`).
 - `--max-workers`: Number of concurrent workers for processing batches (default: `5`).
 - `--chunk-size`: Number of replica requests to make at once per batch (default: `500`).
-- `--split-size`: Sub-batch size for parallelizing large datasets into sub-chunks (default: `2000`).
-- `--max-did-per-dataset`: Maximum number of items per Rucio dataset (default: `50000`).
+- `--low-volume-threshold`: Maximum number of DIDs for a dataset type in a quarter to be considered low-volume and amalgamated into a combined Rucio dataset (default: `2000`).
+- `--max-did-per-dataset`: Maximum number of items per Rucio dataset (default: `50000`). High-volume dataset types exceeding this limit are split across indexed datasets, while low-volume dataset types (`<= --low-volume-threshold`) are amalgamated into combined datasets (`combined<N>`) up to this limit.
 - `--max-dataset-types`: Maximum number of discovered dataset types to process per collection, useful for testing (default: `None`).
 - `--transfer-list`: Optional URL or local path to a curated YAML list of dataset types to register.
 - `--dataset-name-prefix`: Optional custom prefix for auto-registered Rucio datasets (replacing default `Dataset/{collection}`).
@@ -95,7 +95,7 @@ rucio-register auto-register \
     --rucio-register-config register_config.yaml
 ```
 
-Auto-registration using a curated transfer list URL and custom dataset prefix:
+Auto-registration using a curated transfer list URL and custom dataset prefix (overrides use of Butler collection names based on `--root-chain` glob):
 ```bash
 rucio-register auto-register \
     --repo /repo/main \

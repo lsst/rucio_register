@@ -832,6 +832,59 @@ def _format_query_timestamp(date_str: str) -> str:
     return f"{date_str}T00:00:00"
 
 
+def _partition_quarter_datasets(
+    query_results: list[tuple[str, list[Any]]],
+    prefix: str,
+    df_name: str,
+    year_val: str,
+    q_num: int,
+    max_did_per_dataset: int,
+    low_volume_threshold: int,
+) -> list[tuple[str, list[Any]]]:
+    """Partition and amalgamate per-dataset-type query results into Rucio
+    dataset batches respecting ``max_did_per_dataset``.
+    """
+    dataset_batches: list[tuple[str, list[Any]]] = []
+    low_volume_bins: list[tuple[list[str], list[Any]]] = []
+    current_bin_types: list[str] = []
+    current_bin_refs: list[Any] = []
+
+    for ds_type, refs in query_results:
+        if len(refs) > low_volume_threshold or len(refs) > max_did_per_dataset:
+            for sub_idx, sub_chunk in enumerate(chunks(refs, max_did_per_dataset), 1):
+                sub_ds_name = f"{prefix}-{ds_type}-{df_name}-{year_val}Q{q_num}-{sub_idx:08d}"
+                dataset_batches.append((sub_ds_name, list(sub_chunk)))
+        else:
+            if current_bin_refs and len(current_bin_refs) + len(refs) > max_did_per_dataset:
+                low_volume_bins.append((current_bin_types, current_bin_refs))
+                current_bin_types = []
+                current_bin_refs = []
+            current_bin_types.append(ds_type)
+            current_bin_refs.extend(refs)
+
+    if current_bin_refs:
+        low_volume_bins.append((current_bin_types, current_bin_refs))
+
+    combined_idx = 0
+    for bin_types, bin_refs in low_volume_bins:
+        lv_dst_count = len(bin_types)
+        if lv_dst_count == 1:
+            ds_name = f"{prefix}-{bin_types[0]}-{df_name}-{year_val}Q{q_num}-00000001"
+        else:
+            combined_idx += 1
+            ds_name = f"{prefix}-combined{lv_dst_count}-{df_name}-{year_val}Q{q_num}-{combined_idx:08d}"
+            logger.info(
+                "Amalgamating %d low-volume dataset types (%d total DIDs): %s into %s",
+                lv_dst_count,
+                len(bin_refs),
+                bin_types,
+                ds_name,
+            )
+        dataset_batches.append((ds_name, bin_refs))
+
+    return dataset_batches
+
+
 @main.command()
 @click.option("--repo", required=True, type=str, help="butler repository")
 @register_options
@@ -878,10 +931,10 @@ def _format_query_timestamp(date_str: str) -> str:
     help="Maximum number of discovered dataset types to process per collection (for testing)",
 )
 @click.option(
-    "--split-size",
+    "--low-volume-threshold",
     default=2000,
     type=int,
-    help="Sub-batch size for parallelizing large datasets",
+    help="Maximum number of DIDs, used to define a low-volume dataset type for amalgamation",
 )
 @click.option(
     "--transfer-list",
@@ -927,8 +980,9 @@ def auto_register(**kwargs: Any) -> None:
     cutoff_date = _format_query_timestamp(kwargs["cutoff_date"])
     root_chain = kwargs["root_chain"]
     df_name = kwargs["df_name"]
+    max_did_per_dataset = kwargs.get("max_did_per_dataset", 50_000)
     max_dataset_types = kwargs.get("max_dataset_types")
-    split_size = kwargs.get("split_size", 2000)
+    low_volume_threshold = kwargs.get("low_volume_threshold", 2000)
     dry_run = kwargs["dry_run"]
     out_dir = kwargs["out_dir"]
     dataset_name_prefix = kwargs.get("dataset_name_prefix", None)
@@ -1048,7 +1102,7 @@ def auto_register(**kwargs: Any) -> None:
             )
 
             # Query Butler across dataset types using ProcessPoolExecutor
-            query_results = []
+            results_by_type = {}
             mp_context = multiprocessing.get_context("spawn")
             with ProcessPoolExecutor(
                 max_workers=max_workers,
@@ -1060,7 +1114,13 @@ def auto_register(**kwargs: Any) -> None:
                 for future in as_completed(futures):
                     t, refs = future.result()
                     if refs:
-                        query_results.append((t["dataset_type"], refs))
+                        results_by_type[t["dataset_type"]] = refs
+
+            query_results = [
+                (t["dataset_type"], results_by_type[t["dataset_type"]])
+                for t in tasks
+                if t["dataset_type"] in results_by_type
+            ]
 
             total_refs_quarter = sum(len(refs) for _, refs in query_results)
             logger.info(
@@ -1072,45 +1132,33 @@ def auto_register(**kwargs: Any) -> None:
                 continue
 
             # Parallelize registration batches using ProcessPoolExecutor
-            batch_tasks = []
-            for ds_type, refs in query_results:
-                if len(refs) > split_size:
-                    for sub_idx, sub_chunk in enumerate(chunks(refs, split_size), 1):
-                        prefix = dataset_name_prefix or f"Dataset/{collection}"
-                        sub_ds_name = f"{prefix}-{ds_type}-{df_name}-{year_val}Q{q_num}-{sub_idx:08d}"
-                        batch_tasks.append(
-                            {
-                                "refs": list(sub_chunk),
-                                "ds_name": sub_ds_name,
-                                "repo": repo,
-                                "rucio_register_config": rucio_register_config,
-                                "dry_run": dry_run,
-                                "out_dir": out_dir,
-                                "chunk_size": chunk_size,
-                                "max_retries": max_retries,
-                                "backoff_factor": backoff_factor,
-                                "backoff_max_value": backoff_max_value,
-                                "clear_is_new": clear_is_new,
-                            }
-                        )
-                else:
-                    prefix = dataset_name_prefix or f"Dataset/{collection}"
-                    ds_name = f"{prefix}-{ds_type}-{df_name}-{year_val}Q{q_num}-00000001"
-                    batch_tasks.append(
-                        {
-                            "refs": refs,
-                            "ds_name": ds_name,
-                            "repo": repo,
-                            "rucio_register_config": rucio_register_config,
-                            "dry_run": dry_run,
-                            "out_dir": out_dir,
-                            "chunk_size": chunk_size,
-                            "max_retries": max_retries,
-                            "backoff_factor": backoff_factor,
-                            "backoff_max_value": backoff_max_value,
-                            "clear_is_new": clear_is_new,
-                        }
-                    )
+            prefix = dataset_name_prefix or f"Dataset/{collection}"
+            dataset_batches = _partition_quarter_datasets(
+                query_results=query_results,
+                prefix=prefix,
+                df_name=df_name,
+                year_val=year_val,
+                q_num=q_num,
+                max_did_per_dataset=max_did_per_dataset,
+                low_volume_threshold=low_volume_threshold,
+            )
+
+            batch_tasks = [
+                {
+                    "refs": batch_refs,
+                    "ds_name": ds_name,
+                    "repo": repo,
+                    "rucio_register_config": rucio_register_config,
+                    "dry_run": dry_run,
+                    "out_dir": out_dir,
+                    "chunk_size": chunk_size,
+                    "max_retries": max_retries,
+                    "backoff_factor": backoff_factor,
+                    "backoff_max_value": backoff_max_value,
+                    "clear_is_new": clear_is_new,
+                }
+                for ds_name, batch_refs in dataset_batches
+            ]
 
             logger.info(
                 f"Starting parallel registration workers for quarter {q_start} to {q_end} "
