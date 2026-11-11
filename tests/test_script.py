@@ -868,6 +868,147 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
             self.assertIs(inst.initializer, script._set_log_level)
             self.assertEqual(inst.initargs, ({None: "DEBUG"},))
 
+    def test_partition_quarter_datasets_amalgamation_and_splitting(self):
+        query_results = [
+            ("highVol", [f"hv_{i}" for i in range(12)]),
+            ("lowA", ["a1", "a2", "a3"]),
+            ("lowB", ["b1", "b2", "b3", "b4"]),
+            ("lowC", ["c1", "c2", "c3"]),
+            ("lowD", ["d1", "d2", "d3", "d4"]),
+            ("lowE", ["e1", "e2"]),
+        ]
+        # max_did_per_dataset=10, low_volume_threshold=5:
+        # - highVol (12 items > 5): split into 2 datasets of size 10 and 2
+        # - lowA (3) + lowB (4) + lowC (3) = 10 <= 10 -> combined3-00000001
+        # - lowD (4) + lowE (2) = 6 <= 10 -> combined2-00000002
+        batches = script._partition_quarter_datasets(
+            query_results=query_results,
+            prefix="Dataset/HSC/runs/RC2",
+            df_name="USDF",
+            year_val="2023",
+            q_num=1,
+            max_did_per_dataset=10,
+            low_volume_threshold=5,
+        )
+        self.assertEqual(
+            batches,
+            [
+                ("Dataset/HSC/runs/RC2-highVol-USDF-2023Q1-00000001", [f"hv_{i}" for i in range(10)]),
+                ("Dataset/HSC/runs/RC2-highVol-USDF-2023Q1-00000002", ["hv_10", "hv_11"]),
+                (
+                    "Dataset/HSC/runs/RC2-combined3-USDF-2023Q1-00000001",
+                    ["a1", "a2", "a3", "b1", "b2", "b3", "b4", "c1", "c2", "c3"],
+                ),
+                (
+                    "Dataset/HSC/runs/RC2-combined2-USDF-2023Q1-00000002",
+                    ["d1", "d2", "d3", "d4", "e1", "e2"],
+                ),
+            ],
+        )
+
+    def test_partition_quarter_datasets_single_low_volume_uses_original_name(self):
+        query_results = [
+            ("lowA", ["a1", "a2", "a3", "a4"]),
+            ("lowB", ["b1", "b2", "b3", "b4"]),
+            ("lowC", ["c1", "c2", "c3"]),
+        ]
+        # max_did_per_dataset=10, low_volume_threshold=5:
+        # - lowA (4) + lowB (4) = 8 <= 10 -> combined2-00000001
+        # - lowC (3) alone in final bin -> lowC-00000001
+        batches = script._partition_quarter_datasets(
+            query_results=query_results,
+            prefix="Dataset/HSC/runs/RC2",
+            df_name="USDF",
+            year_val="2023",
+            q_num=2,
+            max_did_per_dataset=10,
+            low_volume_threshold=5,
+        )
+        self.assertEqual(
+            batches,
+            [
+                (
+                    "Dataset/HSC/runs/RC2-combined2-USDF-2023Q2-00000001",
+                    ["a1", "a2", "a3", "a4", "b1", "b2", "b3", "b4"],
+                ),
+                ("Dataset/HSC/runs/RC2-lowC-USDF-2023Q2-00000001", ["c1", "c2", "c3"]),
+            ],
+        )
+
+    @patch("lsst.rucio.register.script.ProcessPoolExecutor", DummyExecutor)
+    @patch("lsst.rucio.register.script.Butler")
+    def test_auto_register_amalgamates_low_volume_dataset_types(self, mock_butler_class):
+        mock_butler = MagicMock()
+        mock_butler_class.return_value = mock_butler
+        mock_butler.collections.query.return_value = ["HSC/runs/RC2/w_2023_32"]
+
+        mock_info = MagicMock()
+        mock_info.dataset_types = ["type1", "type2", "type3", "type4", "type5", "highType"]
+        mock_butler.collections.get_info.return_value = mock_info
+
+        def make_refs(prefix, count):
+            refs = []
+            for i in range(count):
+                r = MagicMock()
+                r.id = f"{prefix}-{i:04d}"
+                refs.append(r)
+            return refs
+
+        refs_by_type = {
+            "type1": make_refs("t1", 2),
+            "type2": make_refs("t2", 2),
+            "type3": make_refs("t3", 2),
+            "type4": make_refs("t4", 2),
+            "type5": make_refs("t5", 2),
+            "highType": make_refs("ht", 12),
+        }
+        mock_butler.query_datasets.side_effect = lambda **kw: refs_by_type[kw["dataset_type"]]
+
+        runner = CliRunner()
+        result = runner.invoke(
+            script.main,
+            [
+                "auto-register",
+                "--repo",
+                self.repo,
+                "--root-chain",
+                "HSC/runs/*",
+                "--start-date",
+                "2023-01-01",
+                "--cutoff-date",
+                "2023-04-01",
+                "--low-volume-threshold",
+                "5",
+                "--max-did-per-dataset",
+                "10",
+                "--dry-run",
+                "--out-dir",
+                self.out_dir,
+            ],
+        )
+
+        self.assertEqual(result.exit_code, 0, msg=result.output)
+
+        sanitized_repo = self.repo.strip("/").replace("/", "_")
+        expected_dir = os.path.join(self.out_dir, sanitized_repo, "auto_register")
+        files = sorted(os.listdir(expected_dir))
+        self.assertEqual(
+            files,
+            [
+                "Dataset-HSC-runs-RC2-w_2023_32-combined5-USDF-2023Q1-00000001.txt",
+                "Dataset-HSC-runs-RC2-w_2023_32-highType-USDF-2023Q1-00000001.txt",
+                "Dataset-HSC-runs-RC2-w_2023_32-highType-USDF-2023Q1-00000002.txt",
+            ],
+        )
+
+        with open(os.path.join(expected_dir, files[0])) as f:
+            combined_lines = f.read().splitlines()
+        self.assertEqual(
+            combined_lines[0],
+            "# Dataset/HSC/runs/RC2/w_2023_32-combined5-USDF-2023Q1-00000001 10",
+        )
+        self.assertEqual(len(combined_lines) - 1, 10)
+
 
 class MemoryTester(lsst.utils.tests.MemoryTestCase):
     pass
