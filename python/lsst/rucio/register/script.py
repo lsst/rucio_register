@@ -905,7 +905,7 @@ def _partition_quarter_datasets(
 @click.option(
     "--start-date",
     required=False,
-    default="2000-01-01",
+    default="2025-01-01",
     type=str,
     help="Start date (YYYY-MM-DD)",
 )
