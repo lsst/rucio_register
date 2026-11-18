@@ -865,8 +865,10 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(result.exit_code, 0, msg=result.output)
         self.assertGreater(len(DummyExecutor.last_instances), 0)
         for inst in DummyExecutor.last_instances:
-            self.assertIs(inst.initializer, script._set_log_level)
-            self.assertEqual(inst.initargs, ({None: "DEBUG"},))
+            self.assertIs(inst.initializer, script._init_worker)
+            self.assertEqual(inst.initargs, ({None: "DEBUG"}, self.repo))
+        self.assertIn(self.repo, script._thread_local.butlers)
+        self.assertIs(script._thread_local.butlers[self.repo], mock_butler)
 
     def test_partition_quarter_datasets_amalgamation_and_splitting(self):
         query_results = [
@@ -1008,6 +1010,43 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
             "# Dataset/HSC/runs/RC2/w_2023_32-combined5-USDF-2023Q1-00000001 10",
         )
         self.assertEqual(len(combined_lines) - 1, 10)
+
+    @patch("lsst.rucio.register.script.ProcessPoolExecutor", DummyExecutor)
+    @patch("lsst.rucio.register.script._process_auto_register_batch")
+    @patch("lsst.rucio.register.script.Butler")
+    def test_auto_register_batch_worker_failure_exits_nonzero(self, mock_butler_class, mock_process_batch):
+        mock_butler = MagicMock()
+        mock_butler_class.return_value = mock_butler
+        mock_process_batch.side_effect = RuntimeError("Worker process crashed")
+
+        mock_butler.collections.query.return_value = ["HSC/runs/RC2/w_2023_32"]
+        mock_info = MagicMock()
+        mock_info.dataset_types = ["typeA"]
+        mock_butler.collections.get_info.return_value = mock_info
+
+        refA = MagicMock()
+        refA.id = "11111111-1111-1111-1111-111111111111"
+        refA.dataset_type.name = "typeA"
+        mock_butler.query_datasets.return_value = [refA]
+
+        runner = CliRunner()
+        result = runner.invoke(
+            script.main,
+            [
+                "auto-register",
+                "--repo",
+                self.repo,
+                "--root-chain",
+                "HSC/runs/*",
+                "--start-date",
+                "2023-01-01",
+                "--cutoff-date",
+                "2023-04-01",
+            ],
+        )
+
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn("Auto-register failed to register 1 dataset(s).", result.output)
 
 
 class MemoryTester(lsst.utils.tests.MemoryTestCase):
