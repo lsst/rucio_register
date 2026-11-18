@@ -171,7 +171,10 @@ def _get_rucio_interface(
 
     butler = None
     if repo:
-        butler = Butler(repo)
+        if hasattr(_thread_local, "butlers") and repo in _thread_local.butlers:
+            butler = _thread_local.butlers[repo]
+        else:
+            butler = Butler(repo)
 
     # create RucioInterface object used to register replicas into datasets
     ri = RucioInterface(
@@ -260,8 +263,8 @@ def _register(
         with ProcessPoolExecutor(
             max_workers=max_workers,
             mp_context=mp_context,
-            initializer=_set_log_level,
-            initargs=(log_level,),
+            initializer=_init_worker,
+            initargs=(log_level, repo),
         ) as executor:
             future_to_chunk = {
                 executor.submit(
@@ -334,6 +337,20 @@ def _set_log_level(log_level: Any) -> None:
         log.handlers.clear()
         log.addHandler(handler)
         log.setLevel(log_level.upper())
+
+
+def _init_worker(log_level: Any, repo: str | None = None) -> None:
+    """Initialize logging and Butler (including its DimensionUniverse) in a
+    spawned worker process before unpickling DatasetRef task arguments.
+    """
+    _set_log_level(log_level)
+    if repo:
+        if not hasattr(_thread_local, "butlers"):
+            _thread_local.butlers = {}
+        if repo not in _thread_local.butlers:
+            butler = Butler(repo)
+            _ = butler.dimensions
+            _thread_local.butlers[repo] = butler
 
 
 def _limit_dataset_types(dataset_types: list[str], max_dataset_types: int | None) -> list[str]:
@@ -426,6 +443,8 @@ def data_products(**kwargs: Any) -> None:
         clear_is_new=clear_is_new,
         kwargs=kwargs,
     )
+    if stats.get("failed", 0) > 0:
+        raise click.ClickException(f"Failed to register {stats['failed']} dataset(s) to {rucio_dataset}.")
 
 
 @main.command()
@@ -519,6 +538,8 @@ def dataset_list(**kwargs: Any) -> None:
         stats=stats,
         kwargs=kwargs,
     )
+    if stats.get("failed", 0) > 0:
+        raise click.ClickException(f"Failed to register {stats['failed']} dataset(s) to {rucio_dataset}.")
     logger.info(f"Successfully registered {len(dataset_refs)} datasets from {uuidlist} to {rucio_dataset}")
 
 
@@ -591,6 +612,8 @@ def raws(**kwargs: Any) -> None:
         stats=stats,
         kwargs=kwargs,
     )
+    if stats.get("failed", 0) > 0:
+        raise click.ClickException(f"Failed to register {stats['failed']} dataset(s) to {rucio_dataset}.")
 
 
 @main.command()
@@ -627,6 +650,7 @@ def zips(**kwargs: Any) -> None:
         logger.info(f"Successfully registered zip file {zip_file} to {rucio_dataset}")
     except Exception as e:
         logger.error(f"Failed to register zip file {zip_file}: {e}", exc_info=True)
+        raise click.ClickException(f"Failed to register zip file {zip_file}: {e}") from e
 
 
 @main.command()
@@ -665,6 +689,7 @@ def dimensions(**kwargs: Any) -> None:
         logger.info(f"Successfully registered dimension file {dim_file} to {rucio_dataset}")
     except Exception as e:
         logger.error(f"Failed to register dimension file {dim_file}: {e}", exc_info=True)
+        raise click.ClickException(f"Failed to register dimension file {dim_file}: {e}") from e
 
 
 def _process_refs_chunk(
@@ -1107,8 +1132,8 @@ def auto_register(**kwargs: Any) -> None:
             with ProcessPoolExecutor(
                 max_workers=max_workers,
                 mp_context=mp_context,
-                initializer=_set_log_level,
-                initargs=(log_level,),
+                initializer=_init_worker,
+                initargs=(log_level, repo),
             ) as executor:
                 futures = {executor.submit(_query_butler_task, repo, task): task for task in tasks}
                 for future in as_completed(futures):
@@ -1168,14 +1193,15 @@ def auto_register(**kwargs: Any) -> None:
             with ProcessPoolExecutor(
                 max_workers=max_workers,
                 mp_context=mp_context,
-                initializer=_set_log_level,
-                initargs=(log_level,),
+                initializer=_init_worker,
+                initargs=(log_level, repo),
             ) as executor:
                 futures = {
                     executor.submit(_process_auto_register_batch, **task_kwargs): task_kwargs
                     for task_kwargs in batch_tasks
                 }
                 for future in as_completed(futures):
+                    task_kwargs = futures[future]
                     try:
                         res = future.result()
                         global_stats["registered"] += res.get("registered", 0)
@@ -1184,6 +1210,10 @@ def auto_register(**kwargs: Any) -> None:
                             global_stats["failures"].extend(res["failures"])
                     except Exception as e:
                         logger.error(f"Auto-register batch worker failed: {e}")
+                        failed_refs = task_kwargs.get("refs", [])
+                        chunk_uuids = [str(r.id) for r in failed_refs]
+                        global_stats["failed"] += len(chunk_uuids) if chunk_uuids else 1
+                        global_stats["failures"].extend(chunk_uuids)
 
     elapsed_time = time.time() - start_time
     logger.info("Auto-register processing completed in %.3f seconds", elapsed_time)
@@ -1193,3 +1223,4 @@ def auto_register(**kwargs: Any) -> None:
     )
     if global_stats["failed"] > 0:
         logger.error(f"Auto-register failed dataset UUIDs: {global_stats['failures']}")
+        raise click.ClickException(f"Auto-register failed to register {global_stats['failed']} dataset(s).")

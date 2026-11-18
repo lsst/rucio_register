@@ -11,3 +11,4 @@ config.log
 .ruff_cache/
 .sconf_temp/
 .pytest_cache/
+.env
