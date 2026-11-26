@@ -1048,6 +1048,44 @@ class AutoRegisterTestCase(lsst.utils.tests.TestCase):
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn("Auto-register failed to register 1 dataset(s).", result.output)
 
+    def test_resolve_dataset_prefix_multi_collection(self):
+        # Single collection uses dataset_name_prefix verbatim
+        self.assertEqual(
+            script._resolve_dataset_prefix(
+                "Dataset/custom/prefix",
+                "LSSTCam/runs/DRP/w_2026_41/DM-56517/20261009T202623Z",
+                "LSSTCam/runs/DRP/w_2026_41/DM-56517/*",
+                num_matched_collections=1,
+            ),
+            "Dataset/custom/prefix",
+        )
+        # Multiple collections append the RUN suffix relative to root_chain
+        self.assertEqual(
+            script._resolve_dataset_prefix(
+                "Dataset/custom/prefix",
+                "LSSTCam/runs/DRP/w_2026_41/DM-56517/20261009T202623Z",
+                "LSSTCam/runs/DRP/w_2026_41/DM-56517/*",
+                num_matched_collections=2,
+            ),
+            "Dataset/custom/prefix/20261009T202623Z",
+        )
+        # No dataset_name_prefix falls back to Dataset/{collection}
+        self.assertEqual(
+            script._resolve_dataset_prefix(
+                None,
+                "LSSTCam/runs/DRP/w_2026_41/DM-56517/20261009T202623Z",
+                "LSSTCam/runs/DRP/w_2026_41/DM-56517/*",
+                num_matched_collections=2,
+            ),
+            "Dataset/LSSTCam/runs/DRP/w_2026_41/DM-56517/20261009T202623Z",
+        )
+
+    def test_set_log_level_suppresses_urllib3_redirects_at_info(self):
+        script._set_log_level("INFO")
+        self.assertEqual(logging.getLogger("urllib3.poolmanager").level, logging.WARNING)
+        script._set_log_level("DEBUG")
+        self.assertEqual(logging.getLogger("urllib3.poolmanager").level, logging.NOTSET)
+
 
 class MemoryTester(lsst.utils.tests.MemoryTestCase):
     pass

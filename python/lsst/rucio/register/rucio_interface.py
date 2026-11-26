@@ -482,13 +482,13 @@ class RucioInterface:
             try:
                 dids = [rb.get_did() for rb in bundles]
                 names = [did["pfn"] for did in dids]
-                logger.info("Registering %s in dataset %s, RSE %s", names, dataset_id, self.rse)
+                logger.debug("Registering %s in dataset %s, RSE %s", names, dataset_id, self.rse)
                 self._add_files_to_dataset(dataset_id, dids)
             except rucio.common.exception.DataIdentifierNotFound:
                 # No such dataset, so create it
                 try:
-                    logger.info("Couldn't register because dataset not yet registered")
-                    logger.info("Creating Rucio dataset %s", dataset_id)
+                    logger.debug("Couldn't register because dataset not yet registered")
+                    logger.debug("Creating Rucio dataset %s", dataset_id)
                     self._add_dataset_with_retries(
                         dataset_id=dataset_id,
                         statuses={"monotonic": True},
@@ -497,8 +497,8 @@ class RucioInterface:
                     # If someone else created it in the meantime
                     pass
                 # And then retry adding DIDs
-                logger.info("Dataset registered.")
-                logger.info("Retrying registering %s in dataset %s, RSE %s", names, dataset_id, self.rse)
+                logger.debug("Dataset registered.")
+                logger.debug("Retrying registering %s in dataset %s, RSE %s", names, dataset_id, self.rse)
                 self._add_files_to_dataset(dataset_id, dids)
 
         if self.clear_is_new:

@@ -336,7 +336,12 @@ def _set_log_level(log_level: Any) -> None:
         log = logging.getLogger()
         log.handlers.clear()
         log.addHandler(handler)
-        log.setLevel(log_level.upper())
+        level = log_level.upper()
+        log.setLevel(level)
+        if level != "DEBUG":
+            logging.getLogger("urllib3.poolmanager").setLevel(logging.WARNING)
+        else:
+            logging.getLogger("urllib3.poolmanager").setLevel(logging.NOTSET)
 
 
 def _init_worker(log_level: Any, repo: str | None = None) -> None:
@@ -857,6 +862,31 @@ def _format_query_timestamp(date_str: str) -> str:
     return f"{date_str}T00:00:00"
 
 
+def _resolve_dataset_prefix(
+    dataset_name_prefix: str | None,
+    collection: str,
+    root_chain: str,
+    num_matched_collections: int,
+) -> str:
+    """Build the Rucio dataset name prefix for a matched RUN collection.
+
+    When ``dataset_name_prefix`` is provided and ``root_chain`` matches more
+    than one RUN collection, append the unique collection suffix (relative to
+    the static prefix of ``root_chain``) so datasets from different RUN
+    collections do not collide.
+    """
+    if not dataset_name_prefix:
+        return f"Dataset/{collection}"
+    if num_matched_collections <= 1:
+        return dataset_name_prefix
+    root_prefix = root_chain.split("*", 1)[0].rstrip("/")
+    if root_prefix and collection.startswith(root_prefix + "/"):
+        col_suffix = collection[len(root_prefix) + 1 :]
+    else:
+        col_suffix = collection.strip("/")
+    return f"{dataset_name_prefix.rstrip('/')}/{col_suffix}"
+
+
 def _partition_quarter_datasets(
     query_results: list[tuple[str, list[Any]]],
     prefix: str,
@@ -1157,7 +1187,12 @@ def auto_register(**kwargs: Any) -> None:
                 continue
 
             # Parallelize registration batches using ProcessPoolExecutor
-            prefix = dataset_name_prefix or f"Dataset/{collection}"
+            prefix = _resolve_dataset_prefix(
+                dataset_name_prefix=dataset_name_prefix,
+                collection=collection,
+                root_chain=root_chain,
+                num_matched_collections=len(matched_collections),
+            )
             dataset_batches = _partition_quarter_datasets(
                 query_results=query_results,
                 prefix=prefix,
